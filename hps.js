@@ -4,9 +4,12 @@ var path = require('path')
 //const xlsx = require("xlsx")
 var spread_sheet = require('spread_sheet');
 var exceljs = require('exceljs')
-var mp3Duration = require('mp3-duration');
 const mm = require('music-metadata');
 const util = require('util');
+var sqlite3 = require('sqlite3').verbose();
+var db 
+
+var CreateXlsx = 0
 
 var progressbar, progressbar_empty
 
@@ -39,6 +42,26 @@ function PrintProgress(Length,num,task){
 	}
 }
 
+function CreateTable(){
+	db.run('CREATE TABLE "BeatmapsAll" ("BeatmapSetID"	INTEGER NOT NULL,"BeatmapID" INTEGER NOT NULL,	"BeatmapMapper"	TEXT,"BeatmapArtist"	TEXT,	"BeatmapTitle"	TEXT,	"BeatmapDiff"	TEXT,	"MapPath"	INTEGER,	"BeatmapDuration"	REAL NOT NULL,	"HitObjects"	INTEGER NOT NULL,	"HitsPerMinute"	NUMERIC NOT NULL,	"HitsRate"	NUMERIC NOT NULL,	"MapLink"	TEXT,	"osudirect"	TEXT)')
+}
+
+function insertRow(data) {
+    db.run('INSERT INTO "BeatmapsAll" VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
+    	data.BeatmapSetID,
+    	data.BeatmapID,
+    	data.BeatmapMapper,
+    	data.BeatmapArtist,
+    	data.BeatmapTitle,
+    	data.BeatmapDiff,
+    	data.MapPath,
+    	data.BeatmapDuration,
+    	data.HitObjects,
+    	data.HitsPerMinute,
+    	data.HitsRate,
+    	data.MapLink,
+    	data.osudirect)
+}
 
 
 var hps = {
@@ -62,61 +85,64 @@ var hps = {
 	  	var MapsFiles = []
 		MapsFiles.length = 0
 
-
-
 ///////////////////////////////////////////
-		const workbook = new exceljs.Workbook();
 
-		const worksheet = workbook.addWorksheet('Sheet1');
-		const linkStyle = {
-		  underline: true,
-		  color: { argb: 'FF0000FF' },
-		};
-		const defaultText = {
-		  underline: false,
-		  color: { argb: '00000000' },
-		};
-	worksheet.columns = [
-		  {header: 'BeatmapSetID', key: 'BeatmapSetID'},
-		  {header: 'BeatmapID', key: 'BeatmapID'},
-		  {header: 'BeatmapMapper', key: 'BeatmapMapper'},
-		  {header: 'BeatmapArtist', key: 'BeatmapArtist'},
-		  {header: 'BeatmapTitle', key: 'BeatmapTitle'},
-		  {header: 'BeatmapDiff', key: 'BeatmapDiff'},
-		  {header: 'MapPath', key: 'MapPath'},
-		  {header: 'BeatmapDuration', key: 'BeatmapDuration'},
-  		  {header: 'HitObjects', key: 'HitObjects'},
-  		  {header: 'HitsPerMinute', key: 'HitsPerMinute'},
-  		  {header: 'HitsRate', key: 'HitsRate'},
-  		  //{header:'osu!direct',key:'osudirect'}
-  		  {header:'MapLink',key:'MapLink'}
-		]
-		worksheet.columns.forEach(column => {
-		  column.width = column.header.length < 12 ? 12 : column.header.length
-		})
-		worksheet.getRow(1).font = {bold: true}
+		if (CreateXlsx == 1){
+			const workbook = new exceljs.Workbook();
 
-		const figureColumnsNumbers = [1, 2, 7]
-		figureColumnsNumbers.forEach((i) => {
-		  worksheet.getColumn(i).numFmt = '0'
-		  worksheet.getColumn(i).alignment = {horizontal: 'right'}
-		})
+			const worksheet = workbook.addWorksheet('Sheet1');
+			const linkStyle = {
+			  underline: true,
+			  color: { argb: 'FF0000FF' },
+			};
+			const defaultText = {
+			  underline: false,
+			  color: { argb: '00000000' },
+			};
+		worksheet.columns = [
+			  {header: 'BeatmapSetID', key: 'BeatmapSetID'},
+			  {header: 'BeatmapID', key: 'BeatmapID'},
+			  {header: 'BeatmapMapper', key: 'BeatmapMapper'},
+			  {header: 'BeatmapArtist', key: 'BeatmapArtist'},
+			  {header: 'BeatmapTitle', key: 'BeatmapTitle'},
+			  {header: 'BeatmapDiff', key: 'BeatmapDiff'},
+			  {header: 'MapPath', key: 'MapPath'},
+			  {header: 'BeatmapDuration', key: 'BeatmapDuration'},
+	  		  {header: 'HitObjects', key: 'HitObjects'},
+	  		  {header: 'HitsPerMinute', key: 'HitsPerMinute'},
+	  		  {header: 'HitsRate', key: 'HitsRate'},
+	  		  //{header:'osu!direct',key:'osudirect'}
+	  		  {header:'MapLink',key:'MapLink'}
+			]
+			worksheet.columns.forEach(column => {
+			  column.width = column.header.length < 12 ? 12 : column.header.length
+			})
+			worksheet.getRow(1).font = {bold: true}
 
-		const figureColumnsFloat = [8]
-		figureColumnsFloat.forEach((i) => {
-		  worksheet.getColumn(i).numFmt = '0.000000'
-		  worksheet.getColumn(i).alignment = {horizontal: 'right'}
-		})
+			const figureColumnsNumbers = [1, 2, 7]
+			figureColumnsNumbers.forEach((i) => {
+			  worksheet.getColumn(i).numFmt = '0'
+			  worksheet.getColumn(i).alignment = {horizontal: 'right'}
+			})
 
-		const figureColumnsLink = [12]
-		figureColumnsLink.forEach((i) => {
-			worksheet.getColumn(i).font = linkStyle;
-		})
-		worksheet.getCell('L1').font = {color: {argb: "00000000"},bold: true};
+			const figureColumnsFloat = [8]
+			figureColumnsFloat.forEach((i) => {
+			  worksheet.getColumn(i).numFmt = '0.000000'
+			  worksheet.getColumn(i).alignment = {horizontal: 'right'}
+			})
 
-		//worksheet.autoFilter = 'G1:H1';
+			const figureColumnsLink = [12]
+			figureColumnsLink.forEach((i) => {
+				worksheet.getColumn(i).font = linkStyle;
+			})
+			worksheet.getCell('L1').font = {color: {argb: "00000000"},bold: true};
+		} else {
+
+			CreateTable()
+
+		}
+
 ////////////////////////////////////////////////////
-
 
 	  	for (const folder of SongsDir){
 
@@ -206,31 +232,39 @@ var hps = {
 						hps_hitsRate =  HitObjects/(hps_averageOffset)
 
 						if (tempdata_beatmapid>0){
-							var maplink = { 
-								text: "link",
-								hyperlink: "osu://b/"+tempdata_beatmapid
+							if (CreateXlsx == 1){
+								var maplink = { 
+									text: "link",
+									hyperlink: "osu://b/"+tempdata_beatmapid
+								}
+								var maplink2 = {
+									text: "link",
+									hyperlink: "https://osu.ppy.sh/beatmapsets/"+tempdata_beatmapsetid
+								}
+							} else {
+
+								var maplink =  "osu://b/"+tempdata_beatmapid
+								
+								var maplink2 =  "https://osu.ppy.sh/beatmapsets/"+tempdata_beatmapsetid
 							}
-							var maplink2 = {
-								text: "link",
-								hyperlink: "https://osu.ppy.sh/beatmapsets/"+tempdata_beatmapsetid
-							}
+							
 						} else {
 							var maplink = "no link"
 							var maplink2 = "no link"
 						}
+
 						var BeatmapDuration = -1
 						try{
 							var metadata = await mm.parseFile(beatmapAudioPath)
 							BeatmapDuration = metadata.format.duration
 						} catch (e){}
 
-
 						var hps_hpm = -1
 						if (BeatmapDuration > 0){
 							hps_hpm = HitObjects/(BeatmapDuration/60)
 						} 
 
-						var LastRow = worksheet.addRow({
+						var objmap = {
 							BeatmapSetID: Number(tempdata_beatmapsetid),
 							BeatmapID: Number(tempdata_beatmapid),
 							BeatmapMapper: tempdata_mapper,
@@ -242,15 +276,29 @@ var hps = {
 							HitObjects: Number(HitObjects),
 							HitsPerMinute: hps_hpm,
 							HitsRate: Number(hps_hitsRate).toFixed(6),
-							//osudirect: maplink
-							MapLink: maplink2
-						});
-
-						if (maplink === "no link"){
-							LastRow.getCell(12).font = defaultText
+							MapLink: maplink2,
+							osudirect: maplink
 						}
-						if (maplink2 === "no link"){
-							LastRow.getCell(12).font = defaultText
+
+						if (CreateXlsx == 1){
+							var LastRow = worksheet.addRow(objmap);
+
+							if (maplink === "no link"){
+								LastRow.getCell(12).font = defaultText
+							}
+							if (maplink2 === "no link"){
+								LastRow.getCell(12).font = defaultText
+							}
+						} else {
+							if ( objmap.BeatmapID>0 && objmap.BeatmapDuration>0){
+
+								try{
+									insertRow(objmap)
+								}catch (e){
+									log(e)
+								}
+								
+							}
 						}
 
 	   				}//end .osu file
@@ -263,95 +311,87 @@ var hps = {
 
 	   	}//end songs
 
-	    await workbook.xlsx.writeFile('BeatmapDB.xlsx');
+		
+
+	   if (CreateXlsx == 1){
+	   	await workbook.xlsx.writeFile('BeatmapDB.xlsx');
+	   } else {
+	   	db.close();
+	   }
 
 	},//end run
 
-	test: async function(){
-		const workbook = new exceljs.Workbook();
+	GetBeatmap: async function(){
 
-		const worksheet = workbook.addWorksheet('Sheet1');
-		const linkStyle = {
-		  underline: true,
-		  color: { argb: 'FF0000FF' },
-		};
-	worksheet.columns = [
-		  {header: 'BeatmapSetID', key: 'BeatmapSetID'},
-		  {header: 'BeatmapID', key: 'BeatmapID'},
-		  {header: 'BeatmapArtist', key: 'BeatmapArtist'},
-		  {header: 'BeatmapTitle', key: 'BeatmapTitle'},
-		  {header: 'BeatmapDiff', key: 'BeatmapDiff'},
-		  {header: 'MapPath', key: 'MapPath'},
-  		  {header: 'HitObjects', key: 'HitObjects'},
-  		  {header: 'HitsRate', key: 'HitsRate'},
-  		  {header:'osu!direct',key:'osudirect'}
-		]
-		worksheet.columns.forEach(column => {
-		  column.width = column.header.length < 12 ? 12 : column.header.length
-		})
-		worksheet.getRow(1).font = {bold: true}
+		var expr = 'HitsRate>1.5 AND HitsRate<2'
 
-		const figureColumnsNumbers = [1, 2, 7]
-		figureColumnsNumbers.forEach((i) => {
-		  worksheet.getColumn(i).numFmt = '0'
-		  worksheet.getColumn(i).alignment = {horizontal: 'right'}
-		})
+		await fs.writeFile('beatmaps.html','')//clear
 
-		const figureColumnsFloat = [8]
-		figureColumnsFloat.forEach((i) => {
-		  worksheet.getColumn(i).numFmt = '0.000000'
-		  worksheet.getColumn(i).alignment = {horizontal: 'right'}
-		})
+		let exprHtml = '<div style="display: flex;">'+expr+'</div>'
 
-		const figureColumnsLink = [9]
-		figureColumnsLink.forEach((i) => {
-			  worksheet.getColumn(i).font = linkStyle;
-		})
-		worksheet.getCell('I1').font = {color: {argb: "00000000"},bold: true};
+		await fs.appendFile('beatmaps.html',exprHtml)
 
-		worksheet.autoFilter = 'G1:H1';
+		let headcontent = '<div style="display: flex;">' + 
+			getTableCeil('BeatmapMapper',125) +
+			getTableCeil('BeatmapArtist',200) +
+			getTableCeil('BeatmapTitle',250) +
+			getTableCeil('BeatmapDiff',300) +
+			getTableCeil('Duration',100) +
+			getTableCeil('HitObjects',100) +
+			getTableCeil('HitsPerMinute',100) +
+			getTableCeil('HitsRate',100) +
+			getTableCeil('Map link') +
+			getTableCeil('osu!direct') +'</div>'
 
-		worksheet.addRow({
-			BeatmapSetID:634339,
-			BeatmapID:1345997,
-			BeatmapArtist:"t+pazolite Remix",
-			BeatmapTitle:"Singletap training",
-			BeatmapDiff:"300 BPM stack",
-			MapPath:"634339 t+pazolite Remix - Singletap training\\t+pazolite Remix - Singletap training (ImCayne) [300 BPM stack].osu",
-			HitObjects:100,
-			HitsRate:1.000000,
-			osudirect:{ 
-				text: '300 BPM stack',
-				hyperlink: 'osu://b/1345997'
+		await fs.appendFile('beatmaps.html',headcontent)
+
+		db.each ('SELECT * FROM "BeatmapsAll" WHERE '+expr+' ORDER BY RANDOM() LIMIT 18',(e,row)=>{
+			if (e){
+				throw e
 			}
-		});
 
-		worksheet.addRow({
-			BeatmapSetID:634339,
-			BeatmapID:1345997,
-			BeatmapArtist:"t+pazolite Remix",
-			BeatmapTitle:"Singletap training",
-			BeatmapDiff:"300 BPM stack",
-			MapPath:"634339 t+pazolite Remix - Singletap training\\t+pazolite Remix - Singletap training (ImCayne) [300 BPM stack].osu",
-			HitObjects:100,
-			HitsRate: Number("0.5003007").toFixed(6),
-			osudirect:{ 
-				text: '300 BPM stack',
-				hyperlink: 'osu://b/1345997'
-			}
-		});
+			let content = '<div style="display: flex;">' + 
+			//getTableCeil(row.BeatmapID) + 
+			//getTableCeil(row.BeatmapSetID) +
+			getTableCeil(row.BeatmapMapper,125) +
+			getTableCeil(row.BeatmapArtist,200) +
+			getTableCeil(row.BeatmapTitle,250) +
+			getTableCeil(row.BeatmapDiff,300) +
+			//getTableCeil(row.MapPath) +
+			getTableCeil((row.BeatmapDuration).toFixed(0),100) +
+			getTableCeil(row.HitObjects,100) +
+			getTableCeil(row.HitsPerMinute.toFixed(0),100) +
+			getTableCeil(row.HitsRate,100) +
+			getTableCeil(getLink('Map link',row.MapLink)) +
+			getTableCeil(getLink('osu!direct',row.osudirect)) +'</div>'
 
+			fs.appendFile('beatmaps.html',content)
+
+		})
 		
+	}//end getbeatmap
 
+}
 
-		await workbook.xlsx.writeFile('test123.xlsx');
-	}
+function getTableCeil(data,width=0){
+	if (width === 0){width = 'max-content'}
+	return '<div style="width: '+width+';white-space: nowrap;display: block;margin:0;padding:2px;float:left;">'+data+'</div>'
+}
 
+function getLink(text,url){
+	return '<a href="'+url+'">'+text+'</a>'
 }
 
 main = async function(){
 
-	return (await hps.CreateDB())
+	db = new sqlite3.Database('BeatmapsHPM.db')
+
+	//return (await hps.CreateDB())
+
 	//return (await hps.test())
+
+	return (await hps.GetBeatmap())
+
+	db.close();
 }
 main()
