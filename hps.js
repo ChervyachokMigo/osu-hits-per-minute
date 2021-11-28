@@ -9,6 +9,7 @@ const util = require('util');
 var sqlite3 = require('sqlite3').verbose();
 var db 
 
+var CreateDB = 0
 var CreateXlsx = 0
 
 var progressbar, progressbar_empty
@@ -137,7 +138,7 @@ var hps = {
 			})
 			worksheet.getCell('L1').font = {color: {argb: "00000000"},bold: true};
 		} else {
-
+			db = new sqlite3.Database('BeatmapsHPM.db')
 			CreateTable()
 
 		}
@@ -322,6 +323,7 @@ var hps = {
 	},//end run
 
 	GetBeatmap: async function(){
+		db = new sqlite3.Database('BeatmapsHPM.db')
 
 		var expr = 'HitsRate>1.5 AND HitsRate<2'
 
@@ -369,6 +371,8 @@ var hps = {
 
 		})
 		
+		db.close();
+
 	}//end getbeatmap
 
 }
@@ -384,14 +388,14 @@ function getLink(text,url){
 
 main = async function(){
 
-	db = new sqlite3.Database('BeatmapsHPM.db')
+	
 
-	//return (await hps.CreateDB())
-
-	//return (await hps.test())
+	if (CreateDB == 1){
+		return (await hps.CreateDB())
+	}
 
 	return (await hps.GetBeatmap())
 
-	db.close();
+	
 }
 main()
