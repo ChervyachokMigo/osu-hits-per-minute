@@ -44,24 +44,16 @@ function PrintProgress(Length,num,task){
 }
 
 function CreateTable(){
-	db.run('CREATE TABLE "BeatmapsAll" ("BeatmapSetID"	INTEGER NOT NULL,"BeatmapID" INTEGER NOT NULL,	"BeatmapMapper"	TEXT,"BeatmapArtist"	TEXT,	"BeatmapTitle"	TEXT,	"BeatmapDiff"	TEXT,	"MapPath"	INTEGER,	"BeatmapDuration"	REAL NOT NULL,	"HitObjects"	INTEGER NOT NULL,	"HitsPerMinute"	NUMERIC NOT NULL,	"HitsRate"	NUMERIC NOT NULL,	"MapLink"	TEXT,	"osudirect"	TEXT)')
+	db.run('CREATE TABLE "BeatmapsAll" ("BeatmapSetID"	INTEGER,"BeatmapID" INTEGER,	"BeatmapMapper"	TEXT,"BeatmapArtist"	TEXT,	"BeatmapTitle"	TEXT,	"BeatmapDiff"	TEXT,	"MapPath"	INTEGER,	"BeatmapDuration"	REAL,	"HitObjects"	INTEGER,	"HitsPerMinute"	NUMERIC,	"HitsRate"	NUMERIC,	"MapLink"	TEXT,	"osudirect"	TEXT)')
 }
 
-function insertRow(data) {
-    db.run('INSERT INTO "BeatmapsAll" VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
-    	data.BeatmapSetID,
-    	data.BeatmapID,
-    	data.BeatmapMapper,
-    	data.BeatmapArtist,
-    	data.BeatmapTitle,
-    	data.BeatmapDiff,
-    	data.MapPath,
-    	data.BeatmapDuration,
-    	data.HitObjects,
-    	data.HitsPerMinute,
-    	data.HitsRate,
-    	data.MapLink,
-    	data.osudirect)
+function insertRows(data) {
+	let placeholders =  data.map((dataarray) => '(?,?,?,?,?,?,?,?,?,?,?,?,?)').join(',');
+
+	data = [].concat(...data)
+    db.run('INSERT INTO "BeatmapsAll" VALUES '+ placeholders,
+    	data)
+    
 }
 
 
@@ -144,11 +136,14 @@ var hps = {
 		}
 
 ////////////////////////////////////////////////////
-
+		var rowsfordb = []
+		rowsfordb.length = 0
 	  	for (const folder of SongsDir){
 
  			PrintProgress(SongsDir.length,itemnum,1)
+ 			
 			itemnum++
+			//log (itemnum+'/'+SongsDir.length)
 
 			var filePathTemp = (this.Songspath+'\\'+folder).replace(/\/+/g, '\\').replace(/\\+/g, '\\')
 	   	 	var fileTemp = await fs.lstat(filePathTemp)
@@ -220,6 +215,9 @@ var hps = {
 								if (Number(tempdata_hitobject_offset)>0){
 									if (hps_previous != -1) {
 										let hps_range = tempdata_hitobject_offset - hps_previous
+										if (hps_range>5000){
+											hps_range = hps_averageOffset
+										}
 										hps_averageOffset = (hps_averageOffset + hps_range) / 2
 									}
 									hps_previous = tempdata_hitobject_offset
@@ -272,7 +270,7 @@ var hps = {
 							BeatmapArtist: tempdata_artist,
 							BeatmapTitle: tempdata_title,
 							BeatmapDiff: tempdata_diff,
-							MapPath: filepathmap,
+							MapPath: '',//filepathmap,
 							BeatmapDuration: BeatmapDuration,
 							HitObjects: Number(HitObjects),
 							HitsPerMinute: hps_hpm,
@@ -291,13 +289,24 @@ var hps = {
 								LastRow.getCell(12).font = defaultText
 							}
 						} else {
-							if ( objmap.BeatmapID>0 && objmap.BeatmapDuration>0){
-
-								try{
-									insertRow(objmap)
-								}catch (e){
-									log(e)
-								}
+							if ( objmap.BeatmapID>0 && objmap.BeatmapSetID>0 && objmap.BeatmapDuration>0){
+								
+									rowsfordb.push(
+										[objmap.BeatmapSetID,
+								    	objmap.BeatmapID,
+								    	objmap.BeatmapMapper,
+								    	objmap.BeatmapArtist,
+								    	objmap.BeatmapTitle,
+								    	objmap.BeatmapDiff,
+								    	objmap.MapPath,
+								    	objmap.BeatmapDuration,
+								    	objmap.HitObjects,
+								    	objmap.HitsPerMinute,
+								    	objmap.HitsRate,
+								    	objmap.MapLink,
+								    	objmap.osudirect]
+								    )
+								
 								
 							}
 						}
@@ -308,7 +317,15 @@ var hps = {
 
 	   		}//end folder
 
-	   		//if (itemnum==300){break}
+	   		if (itemnum%75==0 || itemnum == SongsDir.length){
+	   			try{
+					insertRows(rowsfordb)
+				}catch (e){
+					log(e)
+				}
+				rowsfordb = []
+				rowsfordb.length = 0
+	   		}
 
 	   	}//end songs
 
@@ -325,19 +342,24 @@ var hps = {
 	GetBeatmap: async function(){
 		db = new sqlite3.Database('BeatmapsHPM.db')
 
-		var expr = 'HitsRate>1.5 AND HitsRate<2'
+		var expr = 'HitsPerMinute>60 AND HitsPerMinute<120'
 
-		await fs.writeFile('beatmaps.html','')//clear
+		var limit = '23'
 
-		let exprHtml = '<div style="display: flex;">'+expr+'</div>'
+		var order = 'HitsPerMinute ASC'
+
+		await fs.writeFile('beatmapsQueryResult.html','')//clear
+
+		let exprHtml = '<div style="display: flex;">'+expr+' LIMIT '+limit+' ORDER BY '+order+'</div>'
 
 		await fs.appendFile('beatmaps.html',exprHtml)
 
 		let headcontent = '<div style="display: flex;">' + 
-			getTableCeil('BeatmapMapper',125) +
-			getTableCeil('BeatmapArtist',200) +
+			getTableCeil('Audio',125) +
 			getTableCeil('BeatmapTitle',250) +
+			getTableCeil('BeatmapArtist',200) +
 			getTableCeil('BeatmapDiff',300) +
+			getTableCeil('BeatmapMapper',125) +			
 			getTableCeil('Duration',100) +
 			getTableCeil('HitObjects',100) +
 			getTableCeil('HitsPerMinute',100) +
@@ -345,29 +367,27 @@ var hps = {
 			getTableCeil('Map link') +
 			getTableCeil('osu!direct') +'</div>'
 
-		await fs.appendFile('beatmaps.html',headcontent)
+		await fs.appendFile('beatmapsQueryResult.html',headcontent)
 
-		db.each ('SELECT * FROM "BeatmapsAll" WHERE '+expr+' ORDER BY RANDOM() LIMIT 18',(e,row)=>{
+		db.each ('SELECT * FROM (SELECT * FROM "BeatmapsAll" WHERE '+expr+' ORDER BY RANDOM() ASC LIMIT '+limit+') ORDER BY '+order,(e,row)=>{
 			if (e){
 				throw e
 			}
 
 			let content = '<div style="display: flex;">' + 
-			//getTableCeil(row.BeatmapID) + 
-			//getTableCeil(row.BeatmapSetID) +
-			getTableCeil(row.BeatmapMapper,125) +
-			getTableCeil(row.BeatmapArtist,200) +
+			getTableCeil('<audio controls style="width:125;height:25;" preload="none"><source src="https://b.ppy.sh/preview/'+row.BeatmapSetID+'.mp3" type="audio/mpeg"></audio>',125)+
 			getTableCeil(row.BeatmapTitle,250) +
+			getTableCeil(row.BeatmapArtist,200) +
 			getTableCeil(row.BeatmapDiff,300) +
-			//getTableCeil(row.MapPath) +
+			getTableCeil(row.BeatmapMapper,125) +
 			getTableCeil((row.BeatmapDuration).toFixed(0),100) +
 			getTableCeil(row.HitObjects,100) +
 			getTableCeil(row.HitsPerMinute.toFixed(0),100) +
 			getTableCeil(row.HitsRate,100) +
 			getTableCeil(getLink('Map link',row.MapLink)) +
 			getTableCeil(getLink('osu!direct',row.osudirect)) +'</div>'
-
-			fs.appendFile('beatmaps.html',content)
+//<img srcset="https://assets.ppy.sh/beatmaps/1619982/covers/list.jpg?1637326573 1x, https://assets.ppy.sh/beatmaps/1619982/covers/list@2x.jpg?1637326573 2x" class="beatmapset-panel__cover" src="https://assets.ppy.sh/beatmaps/1619982/covers/list.jpg?1637326573">
+			fs.appendFile('beatmapsQueryResult.html',content)
 
 		})
 		
@@ -392,9 +412,9 @@ main = async function(){
 
 	if (CreateDB == 1){
 		return (await hps.CreateDB())
+	} else {
+		return (await hps.GetBeatmap())
 	}
-
-	return (await hps.GetBeatmap())
 
 	
 }

@@ -10,7 +10,7 @@ set NODE_OPTIONS=--max-old-space-size=8192
 
 node hps.js
 
-start "" "C:\Program Files\Google\Chrome\Application\chrome.exe" "C:\Program Files\nodejs\beatmaps.html"
+start "" "C:\Program Files\Google\Chrome\Application\chrome.exe" "C:\Program Files\nodejs\beatmapsQueryResult.html"
 
 pause
 
