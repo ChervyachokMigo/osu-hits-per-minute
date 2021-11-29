@@ -11,6 +11,9 @@ var db
 
 var CreateDB = 0
 var CreateXlsx = 0
+var expr = 'HitsRate>0.9 AND HitsRate<1 AND BeatmapDuration>200 AND BeatmapDuration<300 AND HitsPerMinute<120 AND HitsPerMinute>100'
+var limit = 1000000
+var order = 'HitsRate ASC'
 
 var progressbar, progressbar_empty
 
@@ -165,7 +168,8 @@ var hps = {
 		   				let hps_nis = 0
 		   				let HitObjectsFind = 0
 		   				let HitObjects = 0
-
+		   				let hps_hitOffsetFirst = 0
+		   				let hps_hitOffsetLast = 0
 	   					for(let i in tempdata) {
 	   						if(tempdata[i].startsWith("AudioFilename:") ){
 								tempdata_beatmapAudio = tempdata[i].split(":")
@@ -212,6 +216,7 @@ var hps = {
 								let tempdata_hitobject = tempdata[i].split(',')
 
 								let tempdata_hitobject_offset = Number(tempdata_hitobject[2])
+								
 								if (Number(tempdata_hitobject_offset)>0){
 									if (hps_previous != -1) {
 										let hps_range = tempdata_hitobject_offset - hps_previous
@@ -219,12 +224,16 @@ var hps = {
 											hps_range = hps_averageOffset
 										}
 										hps_averageOffset = (hps_averageOffset + hps_range) / 2
+									} else {
+										hps_hitOffsetFirst = tempdata_hitobject_offset
 									}
 									hps_previous = tempdata_hitobject_offset
 									HitObjects++
 								}
 							}
 						}
+
+						hps_hitOffsetLast = hps_previous
 
 						let filepathmap=folder+"\\"+checkingfile
 
@@ -244,7 +253,7 @@ var hps = {
 
 								var maplink =  "osu://b/"+tempdata_beatmapid
 								
-								var maplink2 =  "https://osu.ppy.sh/beatmapsets/"+tempdata_beatmapsetid
+								var maplink2 =  "https://osu.ppy.sh/beatmapsets/"+tempdata_beatmapsetid+"#osu/"+tempdata_beatmapid
 							}
 							
 						} else {
@@ -254,8 +263,9 @@ var hps = {
 
 						var BeatmapDuration = -1
 						try{
-							var metadata = await mm.parseFile(beatmapAudioPath)
-							BeatmapDuration = metadata.format.duration
+							//var metadata = await mm.parseFile(beatmapAudioPath)
+							//BeatmapDuration = metadata.format.duration
+							BeatmapDuration = (hps_hitOffsetLast - hps_hitOffsetFirst )/1000
 						} catch (e){}
 
 						var hps_hpm = -1
@@ -342,17 +352,11 @@ var hps = {
 	GetBeatmap: async function(){
 		db = new sqlite3.Database('BeatmapsHPM.db')
 
-		var expr = 'HitsPerMinute>60 AND HitsPerMinute<120'
-
-		var limit = '23'
-
-		var order = 'HitsPerMinute ASC'
-
 		await fs.writeFile('beatmapsQueryResult.html','')//clear
 
 		let exprHtml = '<div style="display: flex;">'+expr+' LIMIT '+limit+' ORDER BY '+order+'</div>'
 
-		await fs.appendFile('beatmaps.html',exprHtml)
+		await fs.appendFile('beatmapsQueryResult.html',exprHtml)
 
 		let headcontent = '<div style="display: flex;">' + 
 			getTableCeil('Audio',125) +
