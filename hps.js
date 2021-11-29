@@ -11,8 +11,8 @@ var db
 
 var CreateDB = 0
 var CreateXlsx = 0
-var expr = 'HitsRate>0.9 AND HitsRate<1 AND BeatmapDuration>200 AND BeatmapDuration<300 AND HitsPerMinute<120 AND HitsPerMinute>100'
-var limit = 1000000
+var expr = 'HitsPerMinute > 250 AND HitsPerMinute < 400 AND HitsRate>9 '
+var limit = 100
 var order = 'HitsRate ASC'
 
 var progressbar, progressbar_empty
@@ -372,6 +372,8 @@ var hps = {
 			if (num%2){
 				fs.appendFile('beatmapsQueryResult.html','<div class="beatmap_contentrow">')
 			}
+			let DurationSec = row.BeatmapDuration.toFixed(0)%60
+			let DurationMin = (row.BeatmapDuration.toFixed(0)/60).toFixed(0)
 			let content = '<div class="beatmap_content">' + 
 			'<div class="beatmap_play_button">' + 
 			'<div class="playButton" onclick="playAudio('+row.BeatmapSetID+')"><img class="play_bg" src="https://assets.ppy.sh/beatmaps/'+row.BeatmapSetID+'/covers/list.jpg" ><img class="play_play" src="play.png"></div>'+
@@ -382,7 +384,7 @@ var hps = {
 			'<div class="beatmap_diff"  title="'+row.BeatmapDiff+'">['+row.BeatmapDiff+']</div>'+
 			'<div class="beatmap_mapper" title="'+row.BeatmapMapper+'">сделана '+row.BeatmapMapper+'</div></a>'+
 			'<div class="beatmap_parameters">'+
-			'<div class="beatmap_duration" title="Duration (sec)">'+row.BeatmapDuration.toFixed(0)+'</div>'+
+			'<div class="beatmap_duration" title="Duration">'+DurationMin+':'+DurationSec+'</div>'+
 			'<div class="beatmap_hitobjects" title="Hit objects">'+row.HitObjects+'</div>'+
 			'<div class="beatmap_hpm" title="Hits per minute">'+row.HitsPerMinute.toFixed(0)+'</div>'+
 			'<div class="beatmap_hitsrate" title="Hits rate">'+row.HitsRate+'</div>'+
