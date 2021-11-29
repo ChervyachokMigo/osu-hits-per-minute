@@ -350,60 +350,59 @@ var hps = {
 	},//end run
 
 	GetBeatmap: async function(){
+		var header = '<!DOCTYPE HTML><html><head><meta charset="utf-8"><link rel="stylesheet" href="hps_style.css"><title>'+expr+' LIMIT '+limit+' ORDER BY '+order+'</title></head><body>'
+		header += '<script src="hps_functions.js"></script>'+
+		'<audio id="audio" src="" preload="none"></audio>'
+		var footer =  '</body></html>'
 		db = new sqlite3.Database('BeatmapsHPM.db')
 
-		await fs.writeFile('beatmapsQueryResult.html','')//clear
+		await fs.writeFile('beatmapsQueryResult.html', header)//clear
 
-		let exprHtml = '<div style="display: flex;">'+expr+' LIMIT '+limit+' ORDER BY '+order+'</div>'
+		let exprHtml = '<div style="display: flex;color:#fff;">'+expr+' LIMIT '+limit+' ORDER BY '+order+'</div>'
 
 		await fs.appendFile('beatmapsQueryResult.html',exprHtml)
 
-		let headcontent = '<div style="display: flex;">' + 
-			getTableCeil('Audio',125) +
-			getTableCeil('BeatmapTitle',250) +
-			getTableCeil('BeatmapArtist',200) +
-			getTableCeil('BeatmapDiff',300) +
-			getTableCeil('BeatmapMapper',125) +			
-			getTableCeil('Duration',100) +
-			getTableCeil('HitObjects',100) +
-			getTableCeil('HitsPerMinute',100) +
-			getTableCeil('HitsRate',100) +
-			getTableCeil('Map link') +
-			getTableCeil('osu!direct') +'</div>'
+		var num = 1;
 
-		await fs.appendFile('beatmapsQueryResult.html',headcontent)
+		await db.each ('SELECT * FROM (SELECT * FROM "BeatmapsAll" WHERE '+expr+' ORDER BY RANDOM() ASC LIMIT '+limit+') ORDER BY '+order,(e,row)=>{
+			if (e){throw e}
+				if (num==1){
+					fs.appendFile('beatmapsQueryResult.html','<div class="beatmaps_container">')
+				}
+			if (num%2){
+				fs.appendFile('beatmapsQueryResult.html','<div class="beatmap_contentrow">')
+			}
+			let content = '<div class="beatmap_content">' + 
+			'<div class="beatmap_play_button">' + 
+			'<div class="playButton" onclick="playAudio('+row.BeatmapSetID+')"><img class="play_bg" src="https://assets.ppy.sh/beatmaps/'+row.BeatmapSetID+'/covers/list.jpg" ><img class="play_play" src="play.png"></div>'+
+			'</div>' + 
+			'<a href='+row.MapLink+'><div class="beatmap_info">' + 
+			'<div class="beatmap_title" title="'+row.BeatmapTitle+'">'+row.BeatmapTitle+'</div>'+
+			'<div class="beatmap_artist" title="'+row.BeatmapArtist+'">'+row.BeatmapArtist+'</div>'+
+			'<div class="beatmap_diff"  title="'+row.BeatmapDiff+'">['+row.BeatmapDiff+']</div>'+
+			'<div class="beatmap_mapper" title="'+row.BeatmapMapper+'">сделана '+row.BeatmapMapper+'</div></a>'+
+			'<div class="beatmap_parameters">'+
+			'<div class="beatmap_duration" title="Duration (sec)">'+row.BeatmapDuration.toFixed(0)+'</div>'+
+			'<div class="beatmap_hitobjects" title="Hit objects">'+row.HitObjects+'</div>'+
+			'<div class="beatmap_hpm" title="Hits per minute">'+row.HitsPerMinute.toFixed(0)+'</div>'+
+			'<div class="beatmap_hitsrate" title="Hits rate">'+row.HitsRate+'</div>'+
+			'<div class="osudirect"><a href="'+row.osudirect+'">osu!direct</a></div>'+
+			'</div></div></div>'
 
-		db.each ('SELECT * FROM (SELECT * FROM "BeatmapsAll" WHERE '+expr+' ORDER BY RANDOM() ASC LIMIT '+limit+') ORDER BY '+order,(e,row)=>{
-			if (e){
-				throw e
+			fs.appendFile('beatmapsQueryResult.html',content)
+			num++
+
+			if (num%2 || db.length === num){
+				fs.appendFile('beatmapsQueryResult.html','</div>')
 			}
 
-			let content = '<div style="display: flex;">' + 
-			getTableCeil('<audio controls style="width:125;height:25;" preload="none"><source src="https://b.ppy.sh/preview/'+row.BeatmapSetID+'.mp3" type="audio/mpeg"></audio>',125)+
-			getTableCeil(row.BeatmapTitle,250) +
-			getTableCeil(row.BeatmapArtist,200) +
-			getTableCeil(row.BeatmapDiff,300) +
-			getTableCeil(row.BeatmapMapper,125) +
-			getTableCeil((row.BeatmapDuration).toFixed(0),100) +
-			getTableCeil(row.HitObjects,100) +
-			getTableCeil(row.HitsPerMinute.toFixed(0),100) +
-			getTableCeil(row.HitsRate,100) +
-			getTableCeil(getLink('Map link',row.MapLink)) +
-			getTableCeil(getLink('osu!direct',row.osudirect)) +'</div>'
-//<img srcset="https://assets.ppy.sh/beatmaps/1619982/covers/list.jpg?1637326573 1x, https://assets.ppy.sh/beatmaps/1619982/covers/list@2x.jpg?1637326573 2x" class="beatmapset-panel__cover" src="https://assets.ppy.sh/beatmaps/1619982/covers/list.jpg?1637326573">
-			fs.appendFile('beatmapsQueryResult.html',content)
-
 		})
-		
-		db.close();
+
+		await fs.appendFile('beatmapsQueryResult.html',footer)
+		await db.close();
 
 	}//end getbeatmap
 
-}
-
-function getTableCeil(data,width=0){
-	if (width === 0){width = 'max-content'}
-	return '<div style="width: '+width+';white-space: nowrap;display: block;margin:0;padding:2px;float:left;">'+data+'</div>'
 }
 
 function getLink(text,url){

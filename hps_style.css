@@ -1,0 +1,114 @@
+body{
+	background-color: #171A1C;
+}
+.beatmaps_container{
+	width:  1000px;
+	margin: auto;
+}
+.beatmap_content{
+	width: calc(50% - 10px);
+	margin:  5px;
+	display: flex;
+	background-color: #394246;
+	border-radius: 9px;
+}
+.beatmap_contentrow{
+	display: flex;
+    width: 100%;
+}
+.beatmap_play_button{
+	display: inline-flex;
+}
+
+.playButton{
+	height: 90px;
+    width: 0;
+}
+
+.play_bg{
+	position: absolute;
+
+	height: 94px;
+    width: 94px;
+    border-radius: 9px;
+}
+.play_play{
+	position: absolute;
+	height: 20px;
+    width: 20px;
+    padding: 35px;
+    filter: invert(1);
+    opacity:0
+}
+.playButton:hover{
+	opacity:.7
+}
+.play_play:hover{
+	opacity:1.0
+}
+
+.beatmap_info{
+	display: inline-block;
+	position: relative;
+    left: 90px;
+	width: 75%;
+	padding: 4px 10px 6px;
+}
+.beatmap_title{
+	font-size: 18px;
+	font-weight: 600;
+	text-shadow: 0 1px 3px rgb(0 0 0 / 75%);
+	white-space: nowrap!important;
+    text-overflow: ellipsis!important;
+    overflow: hidden!important;
+    color: #FFF;
+}
+.beatmap_artist{
+	text-shadow: 0 1px 3px rgb(0 0 0 / 75%);
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap!important;
+    text-overflow: ellipsis!important;
+    overflow: hidden!important;
+    color: #FFF;
+}
+.beatmap_diff{
+	text-shadow: 0 1px 3px rgb(0 0 0 / 75%);
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap!important;
+    text-overflow: ellipsis!important;
+    overflow: hidden!important;
+    color: #FFF;
+}
+.beatmap_mapper{
+	text-shadow: 0 1px 3px rgb(0 0 0 / 75%);
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap!important;
+    text-overflow: ellipsis!important;
+    overflow: hidden!important;
+    color: #95BAD5;
+}
+
+.beatmap_parameters{
+	font-size: 12px;
+	font-weight: 600;
+	text-shadow: 0 1px 3px rgb(0 0 0 / 75%);
+	margin: auto;
+	width: max-content;
+}
+.beatmap_duration,.beatmap_hitobjects,.beatmap_hpm,.beatmap_hitsrate,.osudirect{
+	display: inline-block;
+	padding:  0px 10px 0px;
+	color: #FFF;
+}
+.osudirect a{
+	color: #ff0;
+	opacity: 1;
+}
+
+.beatmap_content a{
+	text-decoration: none;
+}
+
