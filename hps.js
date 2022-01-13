@@ -7,6 +7,9 @@ var exceljs = require('exceljs')
 const mm = require('music-metadata');
 const util = require('util');
 var sqlite3 = require('sqlite3').verbose();
+
+var progress = require('./progress-bar.js')
+
 var db 
 
 var CreateDB = 0
@@ -14,37 +17,6 @@ var CreateXlsx = 0
 var expr = 'HitsPerMinute > 250 AND HitsPerMinute < 400 AND HitsRate>9 '
 var limit = 100
 var order = 'HitsRate ASC'
-
-var progressbar, progressbar_empty
-
-function ProgressBarDefault(){
-	progressbar = ""
-	progressbar_empty = "__________"
-}
-
-function PrintProcents(procent){
-
-	if ((procent*10 % 100) < 1){
-		progressbar_empty = progressbar_empty.substring(0, progressbar_empty.length - 1);
-		progressbar = progressbar + "█"
-	}
-	log ("╔══════════╗")
-	log ("║"+progressbar+progressbar_empty+"║")
-	log ("╚══════════╝")
-	log (procent + "% ")
-}
-
-function PrintProgress(Length,num,task){
-	if (num % (Length/1000) < 1 ){
-		process.stdout.write('\033c');
-		let itemnumproc = Math.trunc(num / Length * 1000) / 10
-		log ("[Tasks]")
-		log("Writing xlsx of Beatmaps DB")
-		log ("")
-		log ("Processing...")
-		PrintProcents(itemnumproc)
-	}
-}
 
 function CreateTable(){
 	db.run('CREATE TABLE "BeatmapsAll" ("BeatmapSetID"	INTEGER,"BeatmapID" INTEGER,	"BeatmapMapper"	TEXT,"BeatmapArtist"	TEXT,	"BeatmapTitle"	TEXT,	"BeatmapDiff"	TEXT,	"MapPath"	INTEGER,	"BeatmapDuration"	REAL,	"HitObjects"	INTEGER,	"HitsPerMinute"	NUMERIC,	"HitsRate"	NUMERIC,	"MapLink"	TEXT,	"osudirect"	TEXT)')
@@ -56,7 +28,6 @@ function insertRows(data) {
 	data = [].concat(...data)
     db.run('INSERT INTO "BeatmapsAll" VALUES '+ placeholders,
     	data)
-    
 }
 
 
@@ -76,7 +47,7 @@ var hps = {
 		}
 
 		var itemnum = 0
-	  	ProgressBarDefault()
+	  	await progress.setDefault(SongsDir.length,['Writing xlsx of Beatmaps DB'])
 
 	  	var MapsFiles = []
 		MapsFiles.length = 0
@@ -143,7 +114,7 @@ var hps = {
 		rowsfordb.length = 0
 	  	for (const folder of SongsDir){
 
- 			PrintProgress(SongsDir.length,itemnum,1)
+ 			progress.print()
  			
 			itemnum++
 			//log (itemnum+'/'+SongsDir.length)
