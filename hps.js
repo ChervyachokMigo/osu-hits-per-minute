@@ -1,11 +1,8 @@
 var log = console.log.bind(console)
 var fs = require('fs').promises
 var path = require('path')
-//const xlsx = require("xlsx")
-//var spread_sheet = require('spread_sheet')
+
 var exceljs = require('exceljs')
-//const mm = require('music-metadata')
-//const util = require('util')
 var sqlite3 = require('sqlite3').verbose()
 
 var progress = require('./progress-bar.js')
@@ -48,7 +45,7 @@ var hps = {
 		}
 
 		var itemnum = 0
-	  	await progress.setDefault(SongsDir.length,['Writing xlsx of Beatmaps DB'])
+	  	
 
 	  	var MapsFiles = []
 		MapsFiles.length = 0
@@ -56,14 +53,14 @@ var hps = {
 ///////////////////////////////////////////
 
 		if (config.CreateXlsx == 1){
-			const workbook = new exceljs.Workbook();
+			var workbook = new exceljs.Workbook();
 
-			const worksheet = workbook.addWorksheet('Sheet1');
-			const linkStyle = {
+			var worksheet = workbook.addWorksheet('Sheet1');
+			var linkStyle = {
 			  underline: true,
 			  color: { argb: 'FF0000FF' },
 			};
-			const defaultText = {
+			var defaultText = {
 			  underline: false,
 			  color: { argb: '00000000' },
 			};
@@ -104,185 +101,217 @@ var hps = {
 				worksheet.getColumn(i).font = linkStyle;
 			})
 			worksheet.getCell('L1').font = {color: {argb: "00000000"},bold: true};
-		} else {
+		} 
+
+		var isDBexists = 0
+		var isXlsxExists = 0
+		try {
+			await fs.access('BeatmapsHPM.db', fs.F_OK)
+			isDBexists = 1
+		} catch (e){
+			config.ForceCreateDB = 1
+		}
+		try {
+			await fs.access('BeatmapDB.xlsx', fs.F_OK)
+			isXlsxExists = 1
+		} catch (e){}
+
+
+		if (config.ForceCreateDB == 1){
+			if (isDBexists == 1){
+				await fs.rename('BeatmapsHPM.db','BeatmapsHPM.db.bak')
+			}
 			db = new sqlite3.Database('BeatmapsHPM.db')
 			CreateTable()
-
 		}
+
+		let printtasks = []
+		if (isDBexists == 0 || config.ForceCreateDB == 1 || config.CreateXlsx == 1)
+			printtasks.push('scaning Songs')
+		if (isDBexists == 0 || config.ForceCreateDB == 1)
+			printtasks.push('creating Beatmaps DB')
+		if (config.CreateXlsx == 1)
+			printtasks.push('writing xlsx of Beatmaps DB')
+
+		await progress.setDefault(SongsDir.length,printtasks)
 
 ////////////////////////////////////////////////////
 		var rowsfordb = []
 		rowsfordb.length = 0
-	  	for (const folder of SongsDir){
+		if (isDBexists == 0 || config.ForceCreateDB == 1 || config.CreateXlsx == 1){
+		  	for (const folder of SongsDir){
 
- 			progress.print()
- 			
-			itemnum++
+	 			progress.print()
+	 			
+				itemnum++
 
-			let filePathTemp = (config.Songspath+'\\'+folder).replace(/\/+/g, '\\').replace(/\\+/g, '\\')
-	   	 	let fileTemp = await fs.lstat(filePathTemp)
+				let filePathTemp = (config.Songspath+'\\'+folder).replace(/\/+/g, '\\').replace(/\\+/g, '\\')
+		   	 	let fileTemp = await fs.lstat(filePathTemp)
 
-	   		if (fileTemp.isDirectory()){
+		   		if (fileTemp.isDirectory()){
 
-	   			const DirTemp = await fs.readdir(filePathTemp)
+		   			const DirTemp = await fs.readdir(filePathTemp)
 
-	   			for (const checkingfile of DirTemp){
-		   			
-	   				if (path.extname(checkingfile)=='.osu'){
+		   			for (const checkingfile of DirTemp){
+			   			
+		   				if (path.extname(checkingfile)=='.osu'){
 
-	   					let tempdata = await fs.readFile((filePathTemp+"\\"+checkingfile).replace(/\/+/g, '\\').replace(/\\+/g, '\\'),'utf8')
-		   				tempdata = tempdata.toString().split("\n")
+		   					let tempdata = await fs.readFile((filePathTemp+"\\"+checkingfile).replace(/\/+/g, '\\').replace(/\\+/g, '\\'),'utf8')
+			   				tempdata = tempdata.toString().split("\n")
 
-		   				let beatmapdata = {id:"0",setid:"-2",diff:"",title:"",artist:"",mapper:"",hitsRate:0,HPM:-1,duration:0, numobjects:0}
-		   				let averageOffetObj = {previous: -1, current: 1, first: 0, last: 0}
+			   				let beatmapdata = {id:"0",setid:"-2",diff:"",title:"",artist:"",mapper:"",hitsRate:0,HPM:-1,duration:0, numobjects:0}
+			   				let averageOffetObj = {previous: -1, current: 1, first: 0, last: 0}
 
-		   				let HitObjectsFind = 0
+			   				let HitObjectsFind = 0
 
-	   					for(let i in tempdata) {
+		   					for(let i in tempdata) {
 
-	   						if(tempdata[i].startsWith("BeatmapID:") ){
-								beatmapdata.id = getPropery(tempdata[i])
-							}
-							if(tempdata[i].startsWith("BeatmapSetID:") ){
-								beatmapdata.setid = getPropery(tempdata[i])
-							}
-							if(tempdata[i].startsWith("Version:") ){
-								beatmapdata.diff = getPropery(tempdata[i])
-							}
-							if(tempdata[i].startsWith("Title:") ){
-								beatmapdata.title = getPropery(tempdata[i])
-							}
-							if(tempdata[i].startsWith("Artist:") ){
-								beatmapdata.artist = getPropery(tempdata[i])
-							}
-							if(tempdata[i].startsWith("Creator:") ){
-								beatmapdata.mapper = getPropery(tempdata[i])
-							}
-							
-
-		   					if (HitObjectsFind == 1 && tempdata[i].startsWith("[")== true ){
-								HitObjectsFind = 0
-							}
-
-							if (tempdata[i].toLowerCase().startsWith("[hitobjects]") == true ){
-								HitObjectsFind = 1
-
-							}
-							if (HitObjectsFind == 1){
-
-								averageOffetObj = this.getAverageOffset(averageOffetObj, tempdata[i])
-								beatmapdata.numobjects++
-							}
-						}
-
-						averageOffetObj.last = averageOffetObj.previous
-
-						let filepathmap=folder+"\\"+checkingfile
-
-						beatmapdata.hitsRate =  beatmapdata.numobjects/(averageOffetObj.current)
-
-						if (beatmapdata.id>0){
-							if (config.CreateXlsx == 1){
-								var maplink_direct = { 
-									text: "link",
-									hyperlink: "osu://b/"+beatmapdata.id
+		   						if(tempdata[i].startsWith("BeatmapID:") ){
+									beatmapdata.id = getPropery(tempdata[i])
 								}
-								var maplink = {
-									text: "link",
-									hyperlink: "https://osu.ppy.sh/beatmapsets/"+beatmapdata.setid
+								if(tempdata[i].startsWith("BeatmapSetID:") ){
+									beatmapdata.setid = getPropery(tempdata[i])
 								}
+								if(tempdata[i].startsWith("Version:") ){
+									beatmapdata.diff = getPropery(tempdata[i])
+								}
+								if(tempdata[i].startsWith("Title:") ){
+									beatmapdata.title = getPropery(tempdata[i])
+								}
+								if(tempdata[i].startsWith("Artist:") ){
+									beatmapdata.artist = getPropery(tempdata[i])
+								}
+								if(tempdata[i].startsWith("Creator:") ){
+									beatmapdata.mapper = getPropery(tempdata[i])
+								}
+								
+
+			   					if (HitObjectsFind == 1 && tempdata[i].startsWith("[")== true ){
+									HitObjectsFind = 0
+								}
+
+								if (tempdata[i].toLowerCase().startsWith("[hitobjects]") == true ){
+									HitObjectsFind = 1
+
+								}
+								if (HitObjectsFind == 1){
+
+									averageOffetObj = this.getAverageOffset(averageOffetObj, tempdata[i])
+									beatmapdata.numobjects++
+								}
+							}
+
+							averageOffetObj.last = averageOffetObj.previous
+
+							let filepathmap=folder+"\\"+checkingfile
+
+							beatmapdata.hitsRate =  beatmapdata.numobjects/(averageOffetObj.current)
+
+							if (beatmapdata.id>0){
+								if (config.CreateXlsx == 1){
+									var maplink_direct = { 
+										text: "link",
+										hyperlink: "osu://b/"+beatmapdata.id
+									}
+									var maplink = {
+										text: "link",
+										hyperlink: "https://osu.ppy.sh/beatmapsets/"+beatmapdata.setid
+									}
+								} 
+								if (config.ForceCreateDB == 1){
+									var maplink_direct =  "osu://b/"+beatmapdata.id
+									var maplink =  "https://osu.ppy.sh/beatmapsets/"+beatmapdata.setid+"#osu/"+beatmapdata.id
+								}
+								
 							} else {
-
-								var maplink_direct =  "osu://b/"+beatmapdata.id
-								
-								var maplink =  "https://osu.ppy.sh/beatmapsets/"+beatmapdata.setid+"#osu/"+beatmapdata.id
+								var maplink_direct = "no link"
+								var maplink = "no link"
 							}
-							
-						} else {
-							var maplink_direct = "no link"
-							var maplink = "no link"
+
+							beatmapdata.duration = (averageOffetObj.last - averageOffetObj.first)/1000
+
+							if (beatmapdata.duration > 0){
+								beatmapdata.HPM = beatmapdata.numobjects/(beatmapdata.duration/60)
+							} 
+
+							var objmap = {
+								BeatmapSetID: Number(beatmapdata.setid),
+								BeatmapID: Number(beatmapdata.id),
+								BeatmapMapper: beatmapdata.mapper,
+								BeatmapArtist: beatmapdata.artist,
+								BeatmapTitle: beatmapdata.title,
+								BeatmapDiff: beatmapdata.diff,
+								MapPath: '',//filepathmap,
+								BeatmapDuration: beatmapdata.duration,
+								HitObjects: Number(beatmapdata.numobjects),
+								HitsPerMinute: beatmapdata.HPM,
+								HitsRate: Number(beatmapdata.hitsRate).toFixed(6),
+								MapLink: maplink,
+								osudirect: maplink_direct
+							}
+
+							if (config.CreateXlsx == 1){
+								var LastRow = worksheet.addRow(objmap);
+
+								if (maplink_direct === "no link"){
+									LastRow.getCell(12).font = defaultText
+								}
+								if (maplink === "no link"){
+									LastRow.getCell(12).font = defaultText
+								}
+							}
+							if (config.ForceCreateDB == 1){
+								if ( objmap.BeatmapID>0 && objmap.BeatmapSetID>0 && objmap.BeatmapDuration>0){
+									
+										rowsfordb.push(
+											[objmap.BeatmapSetID,
+									    	objmap.BeatmapID,
+									    	objmap.BeatmapMapper,
+									    	objmap.BeatmapArtist,
+									    	objmap.BeatmapTitle,
+									    	objmap.BeatmapDiff,
+									    	objmap.MapPath,
+									    	objmap.BeatmapDuration,
+									    	objmap.HitObjects,
+									    	objmap.HitsPerMinute,
+									    	objmap.HitsRate,
+									    	objmap.MapLink,
+									    	objmap.osudirect]
+									    )
+									
+									
+								}
+							}
+
+		   				}//end .osu file
+
+		   			}//end every file
+
+		   		}//end folder
+
+		   		if (config.ForceCreateDB == 1){
+			   		if (itemnum%75==0 || itemnum == SongsDir.length){
+			   			try{
+							insertRows(rowsfordb)
+						}catch (e){
+							log(e)
 						}
+						rowsfordb = []
+						rowsfordb.length = 0
+			   		}
+			   	}
 
-						beatmapdata.duration = (averageOffetObj.last - averageOffetObj.first )/1000
+		   	}//end songs
 
-						
-						if (beatmapdata.duration > 0){
-							beatmapdata.HPM = beatmapdata.numobjects/(beatmapdata.duration/60)
-						} 
+			
 
-						var objmap = {
-							BeatmapSetID: Number(beatmapdata.setid),
-							BeatmapID: Number(beatmapdata.id),
-							BeatmapMapper: beatmapdata.mapper,
-							BeatmapArtist: beatmapdata.artist,
-							BeatmapTitle: beatmapdata.title,
-							BeatmapDiff: beatmapdata.diff,
-							MapPath: '',//filepathmap,
-							BeatmapDuration: beatmapdata.duration,
-							HitObjects: Number(beatmapdata.numobjects),
-							HitsPerMinute: beatmapdata.HPM,
-							HitsRate: Number(beatmapdata.hitsRate).toFixed(6),
-							MapLink: maplink,
-							osudirect: maplink_direct
-						}
-
-						if (config.CreateXlsx == 1){
-							var LastRow = worksheet.addRow(objmap);
-
-							if (maplink_direct === "no link"){
-								LastRow.getCell(12).font = defaultText
-							}
-							if (maplink === "no link"){
-								LastRow.getCell(12).font = defaultText
-							}
-						} else {
-							if ( objmap.BeatmapID>0 && objmap.BeatmapSetID>0 && objmap.BeatmapDuration>0){
-								
-									rowsfordb.push(
-										[objmap.BeatmapSetID,
-								    	objmap.BeatmapID,
-								    	objmap.BeatmapMapper,
-								    	objmap.BeatmapArtist,
-								    	objmap.BeatmapTitle,
-								    	objmap.BeatmapDiff,
-								    	objmap.MapPath,
-								    	objmap.BeatmapDuration,
-								    	objmap.HitObjects,
-								    	objmap.HitsPerMinute,
-								    	objmap.HitsRate,
-								    	objmap.MapLink,
-								    	objmap.osudirect]
-								    )
-								
-								
-							}
-						}
-
-	   				}//end .osu file
-
-	   			}//end every file
-
-	   		}//end folder
-
-	   		if (itemnum%75==0 || itemnum == SongsDir.length){
-	   			try{
-					insertRows(rowsfordb)
-				}catch (e){
-					log(e)
-				}
-				rowsfordb = []
-				rowsfordb.length = 0
-	   		}
-
-	   	}//end songs
-
-		
-
-	   if (config.CreateXlsx == 1){
-	   	await workbook.xlsx.writeFile('BeatmapDB.xlsx');
-	   } else {
-	   	db.close();
-	   }
+		   if (config.CreateXlsx == 1){
+		   	await workbook.xlsx.writeFile('BeatmapDB.xlsx');
+		   }
+		   if (config.ForceCreateDB == 1){
+		   	db.close();
+		   }
+		}
 
 	},//end run
 
@@ -369,11 +398,10 @@ var hps = {
 
 main = async function(){
 
-	if (config.CreateDB == 1){
-		return (await hps.ScaningSongs())
-	} else {
-		return (await hps.GetBeatmap())
-	}
+	
+	await hps.ScaningSongs()
+	
+	await hps.GetBeatmap()
 
 }
 main()
