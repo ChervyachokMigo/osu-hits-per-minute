@@ -11,11 +11,25 @@ var config = require('./config.js')
 var db 
 
 function CreateTable(){
-	db.run('CREATE TABLE "BeatmapsAll" ("BeatmapSetID"	INTEGER,"BeatmapID" INTEGER,	"BeatmapMapper"	TEXT,"BeatmapArtist"	TEXT,	"BeatmapTitle"	TEXT,	"BeatmapDiff"	TEXT,	"MapPath"	INTEGER,	"BeatmapDuration"	REAL,	"HitObjects"	INTEGER,	"HitsPerMinute"	NUMERIC,	"HitsRate"	NUMERIC,	"MapLink"	TEXT,	"osudirect"	TEXT)')
+	db.run('CREATE TABLE "BeatmapsAll" ('+
+		'"BeatmapSetID"	INTEGER,'+
+		'"BeatmapID" INTEGER,'+
+		'"BeatmapMapper"	TEXT,'+
+		'"BeatmapArtist"	TEXT,'+
+		'"BeatmapTitle"	TEXT,'+
+		'"BeatmapDiff"	TEXT,'+
+		'"MapPath"	INTEGER,'+
+		'"BeatmapDuration"	REAL,'+
+		'"HitObjects"	INTEGER,'+
+		'"HitsPerMinute"	NUMERIC,'+
+		'"HitsRate"	NUMERIC,'+
+		'"AimRate" NUMERIC,'+
+		'"MapLink"	TEXT,'+
+		'"osudirect"	TEXT)')
 }
 
 function insertRows(data) {
-	let placeholders =  data.map((dataarray) => '(?,?,?,?,?,?,?,?,?,?,?,?,?)').join(',');
+	let placeholders =  data.map((dataarray) => '(?,?,?,?,?,?,?,?,?,?,?,?,?,?)').join(',');
 
 	data = [].concat(...data)
     db.run('INSERT INTO "BeatmapsAll" VALUES '+ placeholders,
@@ -29,6 +43,11 @@ function getPropery(data){
 
 function getLink(text,url){
 	return '<a href="'+url+'">'+text+'</a>'
+}
+
+function pointsLength(x1,y1,x2,y2){
+	let res = Math.sqrt( ((x2-x1)**2) + ((y2-y1)**2) )
+	return res
 }
 
 var hps = {
@@ -76,6 +95,7 @@ var hps = {
 	  		  {header: 'HitObjects', key: 'HitObjects'},
 	  		  {header: 'HitsPerMinute', key: 'HitsPerMinute'},
 	  		  {header: 'HitsRate', key: 'HitsRate'},
+	  		  {header: 'AimRate', key: 'AimRate'},
 	  		  //{header:'osu!direct',key:'osudirect'}
 	  		  {header:'MapLink',key:'MapLink'}
 			]
@@ -159,8 +179,8 @@ var hps = {
 		   					let tempdata = await fs.readFile((filePathTemp+"\\"+checkingfile).replace(/\/+/g, '\\').replace(/\\+/g, '\\'),'utf8')
 			   				tempdata = tempdata.toString().split("\n")
 
-			   				let beatmapdata = {id:"0",setid:"-2",diff:"",title:"",artist:"",mapper:"",hitsRate:0,HPM:-1,duration:0, numobjects:0}
-			   				let averageOffetObj = {previous: -1, current: 1, first: 0, last: 0}
+			   				let beatmapdata = {id:"0",setid:"-2",diff:"",title:"",artist:"",mapper:"",hitsRate:0,HPM:-1,duration:0, numobjects:0,aimRate:0}
+			   				let averageOffetObj = {previous: -1, current: 1, first: 0, last: 0, jumplength: 0, jumpprevious: 0}
 
 			   				let HitObjectsFind = 0
 
@@ -206,6 +226,7 @@ var hps = {
 							let filepathmap=folder+"\\"+checkingfile
 
 							beatmapdata.hitsRate =  beatmapdata.numobjects/(averageOffetObj.current)
+							beatmapdata.aimRate = beatmapdata.numobjects/(averageOffetObj.jumplength)*1000
 
 							if (beatmapdata.id>0){
 								if (config.CreateXlsx == 1){
@@ -246,6 +267,7 @@ var hps = {
 								HitObjects: Number(beatmapdata.numobjects),
 								HitsPerMinute: beatmapdata.HPM,
 								HitsRate: Number(beatmapdata.hitsRate).toFixed(6),
+								AimRate: Number(beatmapdata.aimRate).toFixed(6),
 								MapLink: maplink,
 								osudirect: maplink_direct
 							}
@@ -275,6 +297,7 @@ var hps = {
 									    	objmap.HitObjects,
 									    	objmap.HitsPerMinute,
 									    	objmap.HitsRate,
+									    	objmap.AimRate,
 									    	objmap.MapLink,
 									    	objmap.osudirect]
 									    )
@@ -318,6 +341,20 @@ var hps = {
 	getAverageOffset: function(avgOffset, data){
 
 		let tempdata_hitobject = data.split(',')
+
+
+		let hitobject_cors = {x:Number(tempdata_hitobject[0]),y:Number(tempdata_hitobject[1])}
+
+		if (!isNaN(hitobject_cors.x) && !isNaN(hitobject_cors.y)){
+			if (avgOffset.jumpprevious != 0){
+				let res = pointsLength(hitobject_cors.x,hitobject_cors.y, avgOffset.jumpprevious.x, avgOffset.jumpprevious.y)
+				if (!isNaN(res)){
+					avgOffset.jumplength = avgOffset.jumplength + res
+				}
+			}
+			avgOffset.jumpprevious = hitobject_cors
+		}
+
 
 		let hitobject_offset = Number(tempdata_hitobject[2])
 		
@@ -377,6 +414,7 @@ var hps = {
 			'<div class="beatmap_hitobjects" title="Hit objects">'+row.HitObjects+'</div>'+
 			'<div class="beatmap_hpm" title="Hits per minute">'+row.HitsPerMinute.toFixed(0)+'</div>'+
 			'<div class="beatmap_hitsrate" title="Hits rate">'+row.HitsRate+'</div>'+
+			'<div class="beatmap_aimrate" title="Aim rate">'+row.AimRate+'</div>'+
 			'<div class="osudirect"><a href="'+row.osudirect+'">osu!direct</a></div>'+
 			'</div></div></div>'
 
