@@ -2,21 +2,16 @@ var log = console.log.bind(console)
 var fs = require('fs').promises
 var path = require('path')
 //const xlsx = require("xlsx")
-var spread_sheet = require('spread_sheet');
+//var spread_sheet = require('spread_sheet')
 var exceljs = require('exceljs')
-const mm = require('music-metadata');
-const util = require('util');
-var sqlite3 = require('sqlite3').verbose();
+//const mm = require('music-metadata')
+//const util = require('util')
+var sqlite3 = require('sqlite3').verbose()
 
 var progress = require('./progress-bar.js')
+var config = require('./config.js')
 
 var db 
-
-var CreateDB = 0
-var CreateXlsx = 0
-var expr = 'HitsPerMinute > 250 AND HitsPerMinute < 400 AND HitsRate>9 '
-var limit = 100
-var order = 'HitsRate ASC'
 
 function CreateTable(){
 	db.run('CREATE TABLE "BeatmapsAll" ("BeatmapSetID"	INTEGER,"BeatmapID" INTEGER,	"BeatmapMapper"	TEXT,"BeatmapArtist"	TEXT,	"BeatmapTitle"	TEXT,	"BeatmapDiff"	TEXT,	"MapPath"	INTEGER,	"BeatmapDuration"	REAL,	"HitObjects"	INTEGER,	"HitsPerMinute"	NUMERIC,	"HitsRate"	NUMERIC,	"MapLink"	TEXT,	"osudirect"	TEXT)')
@@ -30,15 +25,21 @@ function insertRows(data) {
     	data)
 }
 
+function getPropery(data){
+	var res = data.split(":")
+	return res[1].trim()
+}
+
+function getLink(text,url){
+	return '<a href="'+url+'">'+text+'</a>'
+}
 
 var hps = {
-	//путь к папке Songs (обратный слеш в пути экранируется еще одним - \\ )
-	Songspath: 'F:\\Songs',
 
-	CreateDB: async function(){
+	ScaningSongs: async function(){
 		var SongsDir
 		try{
-		  	SongsDir = await fs.readdir(this.Songspath);
+		  	SongsDir = await fs.readdir(config.Songspath);
 		}catch(errorSongsPath){
 			if (errorSongsPath.code === 'ENOENT'){
 				log ("Incorrect path to Songs")
@@ -54,7 +55,7 @@ var hps = {
 
 ///////////////////////////////////////////
 
-		if (CreateXlsx == 1){
+		if (config.CreateXlsx == 1){
 			const workbook = new exceljs.Workbook();
 
 			const worksheet = workbook.addWorksheet('Sheet1');
@@ -117,61 +118,45 @@ var hps = {
  			progress.print()
  			
 			itemnum++
-			//log (itemnum+'/'+SongsDir.length)
 
-			var filePathTemp = (this.Songspath+'\\'+folder).replace(/\/+/g, '\\').replace(/\\+/g, '\\')
-	   	 	var fileTemp = await fs.lstat(filePathTemp)
+			let filePathTemp = (config.Songspath+'\\'+folder).replace(/\/+/g, '\\').replace(/\\+/g, '\\')
+	   	 	let fileTemp = await fs.lstat(filePathTemp)
 
 	   		if (fileTemp.isDirectory()){
+
 	   			const DirTemp = await fs.readdir(filePathTemp)
+
 	   			for (const checkingfile of DirTemp){
 		   			
 	   				if (path.extname(checkingfile)=='.osu'){
+
 	   					let tempdata = await fs.readFile((filePathTemp+"\\"+checkingfile).replace(/\/+/g, '\\').replace(/\\+/g, '\\'),'utf8')
 		   				tempdata = tempdata.toString().split("\n")
-		   				let tempdata_beatmapid = "0"
-		   				let tempdata_beatmapsetid = "-2"
-		   				let tempdata_diff = ""
-		   				let tempdata_title = ""
-		   				let tempdata_artist = ""
-		   				let hps_previous = -1
-		   				let hps_averageOffset = 1
-		   				let hps_nis = 0
+
+		   				let beatmapdata = {id:"0",setid:"-2",diff:"",title:"",artist:"",mapper:"",hitsRate:0,HPM:-1,duration:0, numobjects:0}
+		   				let averageOffetObj = {previous: -1, current: 1, first: 0, last: 0}
+
 		   				let HitObjectsFind = 0
-		   				let HitObjects = 0
-		   				let hps_hitOffsetFirst = 0
-		   				let hps_hitOffsetLast = 0
+
 	   					for(let i in tempdata) {
-	   						if(tempdata[i].startsWith("AudioFilename:") ){
-								tempdata_beatmapAudio = tempdata[i].split(":")
-								tempdata_beatmapAudio =  tempdata_beatmapAudio[1].trim()
-								var beatmapAudioPath = filePathTemp+"\\"+tempdata_beatmapAudio
 
-							}
 	   						if(tempdata[i].startsWith("BeatmapID:") ){
-								tempdata_beatmapid = tempdata[i].split(":")
-								tempdata_beatmapid =  tempdata_beatmapid[1].trim()
-
+								beatmapdata.id = getPropery(tempdata[i])
 							}
 							if(tempdata[i].startsWith("BeatmapSetID:") ){
-								tempdata_beatmapsetid = tempdata[i].split(":")
-								tempdata_beatmapsetid =  tempdata_beatmapsetid[1].trim()
+								beatmapdata.setid = getPropery(tempdata[i])
 							}
 							if(tempdata[i].startsWith("Version:") ){
-								tempdata_diff = tempdata[i].split(":")
-								tempdata_diff =  tempdata_diff[1].trim()
+								beatmapdata.diff = getPropery(tempdata[i])
 							}
 							if(tempdata[i].startsWith("Title:") ){
-								tempdata_title = tempdata[i].split(":")
-								tempdata_title  =  tempdata_title[1].trim()
+								beatmapdata.title = getPropery(tempdata[i])
 							}
 							if(tempdata[i].startsWith("Artist:") ){
-								tempdata_artist = tempdata[i].split(":")
-								tempdata_artist  =  tempdata_artist[1].trim()
+								beatmapdata.artist = getPropery(tempdata[i])
 							}
 							if(tempdata[i].startsWith("Creator:") ){
-								tempdata_mapper = tempdata[i].split(":")
-								tempdata_mapper  =  tempdata_mapper[1].trim()
+								beatmapdata.mapper = getPropery(tempdata[i])
 							}
 							
 
@@ -184,89 +169,70 @@ var hps = {
 
 							}
 							if (HitObjectsFind == 1){
-								let tempdata_hitobject = tempdata[i].split(',')
 
-								let tempdata_hitobject_offset = Number(tempdata_hitobject[2])
-								
-								if (Number(tempdata_hitobject_offset)>0){
-									if (hps_previous != -1) {
-										let hps_range = tempdata_hitobject_offset - hps_previous
-										if (hps_range>5000){
-											hps_range = hps_averageOffset
-										}
-										hps_averageOffset = (hps_averageOffset + hps_range) / 2
-									} else {
-										hps_hitOffsetFirst = tempdata_hitobject_offset
-									}
-									hps_previous = tempdata_hitobject_offset
-									HitObjects++
-								}
+								averageOffetObj = this.getAverageOffset(averageOffetObj, tempdata[i])
+								beatmapdata.numobjects++
 							}
 						}
 
-						hps_hitOffsetLast = hps_previous
+						averageOffetObj.last = averageOffetObj.previous
 
 						let filepathmap=folder+"\\"+checkingfile
 
-						hps_hitsRate =  HitObjects/(hps_averageOffset)
+						beatmapdata.hitsRate =  beatmapdata.numobjects/(averageOffetObj.current)
 
-						if (tempdata_beatmapid>0){
-							if (CreateXlsx == 1){
-								var maplink = { 
+						if (beatmapdata.id>0){
+							if (config.CreateXlsx == 1){
+								var maplink_direct = { 
 									text: "link",
-									hyperlink: "osu://b/"+tempdata_beatmapid
+									hyperlink: "osu://b/"+beatmapdata.id
 								}
-								var maplink2 = {
+								var maplink = {
 									text: "link",
-									hyperlink: "https://osu.ppy.sh/beatmapsets/"+tempdata_beatmapsetid
+									hyperlink: "https://osu.ppy.sh/beatmapsets/"+beatmapdata.setid
 								}
 							} else {
 
-								var maplink =  "osu://b/"+tempdata_beatmapid
+								var maplink_direct =  "osu://b/"+beatmapdata.id
 								
-								var maplink2 =  "https://osu.ppy.sh/beatmapsets/"+tempdata_beatmapsetid+"#osu/"+tempdata_beatmapid
+								var maplink =  "https://osu.ppy.sh/beatmapsets/"+beatmapdata.setid+"#osu/"+beatmapdata.id
 							}
 							
 						} else {
+							var maplink_direct = "no link"
 							var maplink = "no link"
-							var maplink2 = "no link"
 						}
 
-						var BeatmapDuration = -1
-						try{
-							//var metadata = await mm.parseFile(beatmapAudioPath)
-							//BeatmapDuration = metadata.format.duration
-							BeatmapDuration = (hps_hitOffsetLast - hps_hitOffsetFirst )/1000
-						} catch (e){}
+						beatmapdata.duration = (averageOffetObj.last - averageOffetObj.first )/1000
 
-						var hps_hpm = -1
-						if (BeatmapDuration > 0){
-							hps_hpm = HitObjects/(BeatmapDuration/60)
+						
+						if (beatmapdata.duration > 0){
+							beatmapdata.HPM = beatmapdata.numobjects/(beatmapdata.duration/60)
 						} 
 
 						var objmap = {
-							BeatmapSetID: Number(tempdata_beatmapsetid),
-							BeatmapID: Number(tempdata_beatmapid),
-							BeatmapMapper: tempdata_mapper,
-							BeatmapArtist: tempdata_artist,
-							BeatmapTitle: tempdata_title,
-							BeatmapDiff: tempdata_diff,
+							BeatmapSetID: Number(beatmapdata.setid),
+							BeatmapID: Number(beatmapdata.id),
+							BeatmapMapper: beatmapdata.mapper,
+							BeatmapArtist: beatmapdata.artist,
+							BeatmapTitle: beatmapdata.title,
+							BeatmapDiff: beatmapdata.diff,
 							MapPath: '',//filepathmap,
-							BeatmapDuration: BeatmapDuration,
-							HitObjects: Number(HitObjects),
-							HitsPerMinute: hps_hpm,
-							HitsRate: Number(hps_hitsRate).toFixed(6),
-							MapLink: maplink2,
-							osudirect: maplink
+							BeatmapDuration: beatmapdata.duration,
+							HitObjects: Number(beatmapdata.numobjects),
+							HitsPerMinute: beatmapdata.HPM,
+							HitsRate: Number(beatmapdata.hitsRate).toFixed(6),
+							MapLink: maplink,
+							osudirect: maplink_direct
 						}
 
-						if (CreateXlsx == 1){
+						if (config.CreateXlsx == 1){
 							var LastRow = worksheet.addRow(objmap);
 
-							if (maplink === "no link"){
+							if (maplink_direct === "no link"){
 								LastRow.getCell(12).font = defaultText
 							}
-							if (maplink2 === "no link"){
+							if (maplink === "no link"){
 								LastRow.getCell(12).font = defaultText
 							}
 						} else {
@@ -312,7 +278,7 @@ var hps = {
 
 		
 
-	   if (CreateXlsx == 1){
+	   if (config.CreateXlsx == 1){
 	   	await workbook.xlsx.writeFile('BeatmapDB.xlsx');
 	   } else {
 	   	db.close();
@@ -320,22 +286,45 @@ var hps = {
 
 	},//end run
 
+	getAverageOffset: function(avgOffset, data){
+
+		let tempdata_hitobject = data.split(',')
+
+		let hitobject_offset = Number(tempdata_hitobject[2])
+		
+		if (Number(hitobject_offset)>0){
+			if (avgOffset.previous != -1) {
+				let hitobjects_range = hitobject_offset - avgOffset.previous
+				if (hitobjects_range>1000){
+					hitobjects_range = avgOffset.current
+				}
+				avgOffset.current = (avgOffset.current + hitobjects_range) / 2
+			} else {
+				avgOffset.first = hitobject_offset
+			}
+			avgOffset.previous = hitobject_offset
+
+		}
+
+		return avgOffset
+	},
+
 	GetBeatmap: async function(){
-		var header = '<!DOCTYPE HTML><html><head><meta charset="utf-8"><link rel="stylesheet" href="hps_style.css"><title>'+expr+' LIMIT '+limit+' ORDER BY '+order+'</title></head><body>'
+		let header = '<!DOCTYPE HTML><html><head><meta charset="utf-8"><link rel="stylesheet" href="hps_style.css"><title>'+config.expr+' LIMIT '+config.limit+' ORDER BY '+config.order+'</title></head><body>'
 		header += '<script src="hps_functions.js"></script>'+
 		'<audio id="audio" src="" preload="none"></audio>'
-		var footer =  '</body></html>'
+		let footer =  '</body></html>'
 		db = new sqlite3.Database('BeatmapsHPM.db')
 
 		await fs.writeFile('beatmapsQueryResult.html', header)//clear
 
-		let exprHtml = '<div style="display: flex;color:#fff;">'+expr+' LIMIT '+limit+' ORDER BY '+order+'</div>'
+		let exprHtml = '<div style="display: flex;color:#fff;">'+config.expr+' LIMIT '+config.limit+' ORDER BY '+config.order+'</div>'
 
 		await fs.appendFile('beatmapsQueryResult.html',exprHtml)
 
-		var num = 1;
+		let num = 1;
 
-		await db.each ('SELECT * FROM (SELECT * FROM "BeatmapsAll" WHERE '+expr+' ORDER BY RANDOM() ASC LIMIT '+limit+') ORDER BY '+order,(e,row)=>{
+		await db.each ('SELECT * FROM (SELECT * FROM "BeatmapsAll" WHERE '+config.expr+' ORDER BY RANDOM() ASC LIMIT '+config.limit+') ORDER BY '+config.order,(e,row)=>{
 			if (e){throw e}
 				if (num==1){
 					fs.appendFile('beatmapsQueryResult.html','<div class="beatmaps_container">')
@@ -378,20 +367,13 @@ var hps = {
 
 }
 
-function getLink(text,url){
-	return '<a href="'+url+'">'+text+'</a>'
-}
-
 main = async function(){
 
-	
-
-	if (CreateDB == 1){
-		return (await hps.CreateDB())
+	if (config.CreateDB == 1){
+		return (await hps.ScaningSongs())
 	} else {
 		return (await hps.GetBeatmap())
 	}
 
-	
 }
 main()

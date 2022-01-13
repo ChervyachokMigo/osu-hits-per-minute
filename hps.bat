@@ -7,7 +7,9 @@ set NODE_OPTIONS=--max-old-space-size=8192
 
 "%programfiles%\nodejs\node" hps.js
 
-start "" "%programfiles%\Google\Chrome\Application\chrome.exe" beatmapsQueryResult.html
+"%programfiles%\Google\Chrome\Application\chrome.exe" "C:\Program Files\nodejs\osu-hits-per-minute-main\beatmapsQueryResult.html"
+
+echo %CD%
 
 pause
 
