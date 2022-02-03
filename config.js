@@ -18,13 +18,14 @@ module.exports = {
 		HitObjects
 		HitsPerMinute
 		HitsRate
+		AimRate
 	*/
-	expr : 'HitsRate<89',
+	expr : 'BeatmapDuration>30',
 	//'1=1',
 	//'BeatmapTitle LIKE "%Wings (Nu%" or BeatmapTitle LIKE "%wizard\'s tower%" or BeatmapTitle LIKE "%louder than steel%"',
 
 	//number show objects
 	limit: 200,
 
-	order: 'HitsRate ASC',
+	order: 'AimRate ASC',
 }

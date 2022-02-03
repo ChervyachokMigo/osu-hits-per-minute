@@ -64,7 +64,6 @@ var hps = {
 		}
 
 		var itemnum = 0
-	  	
 
 	  	var MapsFiles = []
 		MapsFiles.length = 0
@@ -180,10 +179,11 @@ var hps = {
 			   				tempdata = tempdata.toString().split("\n")
 
 			   				let beatmapdata = {id:"0",setid:"-2",diff:"",title:"",artist:"",mapper:"",hitsRate:0,HPM:-1,duration:0, numobjects:0,aimRate:0}
-			   				let averageOffetObj = {previous: -1, current: 1, first: 0, last: 0, jumplength: 0, jumpprevious: 0}
+			   				let NotesObj = {previous: -1, avgOffset: 1, first: 0, last: 0, jumplength: 0, jumpprevious: 0}
 
 			   				let HitObjectsFind = 0
 
+			   				//scanning osu file
 		   					for(let i in tempdata) {
 
 		   						if(tempdata[i].startsWith("BeatmapID:") ){
@@ -209,24 +209,14 @@ var hps = {
 			   					if (HitObjectsFind == 1 && tempdata[i].startsWith("[")== true ){
 									HitObjectsFind = 0
 								}
-
 								if (tempdata[i].toLowerCase().startsWith("[hitobjects]") == true ){
 									HitObjectsFind = 1
-
 								}
 								if (HitObjectsFind == 1){
-
-									averageOffetObj = this.getAverageOffset(averageOffetObj, tempdata[i])
+									NotesObj = this.getAverageOffset(NotesObj, tempdata[i])
 									beatmapdata.numobjects++
 								}
 							}
-
-							averageOffetObj.last = averageOffetObj.previous
-
-							let filepathmap=folder+"\\"+checkingfile
-
-							beatmapdata.hitsRate =  beatmapdata.numobjects/(averageOffetObj.current)
-							beatmapdata.aimRate = beatmapdata.numobjects/(averageOffetObj.jumplength)*1000
 
 							if (beatmapdata.id>0){
 								if (config.CreateXlsx == 1){
@@ -249,11 +239,22 @@ var hps = {
 								var maplink = "no link"
 							}
 
-							beatmapdata.duration = (averageOffetObj.last - averageOffetObj.first)/1000
+							NotesObj.last = NotesObj.previous
+
+							beatmapdata.duration = (NotesObj.last - NotesObj.first)/1000
 
 							if (beatmapdata.duration > 0){
 								beatmapdata.HPM = beatmapdata.numobjects/(beatmapdata.duration/60)
 							} 
+
+							beatmapdata.hitsRate = beatmapdata.HPM/NotesObj.avgOffset
+							beatmapdata.aimRate = beatmapdata.HPM*NotesObj.jumplength*0.000001
+
+							/*
+							log ('===')
+							log(beatmapdata.diff)
+							log(beatmapdata.hitsRate)
+							log(beatmapdata.aimRate)*/
 
 							var objmap = {
 								BeatmapSetID: Number(beatmapdata.setid),
@@ -262,12 +263,12 @@ var hps = {
 								BeatmapArtist: beatmapdata.artist,
 								BeatmapTitle: beatmapdata.title,
 								BeatmapDiff: beatmapdata.diff,
-								MapPath: '',//filepathmap,
+								MapPath: '',//folder+"\\"+checkingfile,
 								BeatmapDuration: beatmapdata.duration,
 								HitObjects: Number(beatmapdata.numobjects),
 								HitsPerMinute: beatmapdata.HPM,
-								HitsRate: Number(beatmapdata.hitsRate).toFixed(6),
-								AimRate: Number(beatmapdata.aimRate).toFixed(6),
+								HitsRate: Number(beatmapdata.hitsRate).toFixed(3),
+								AimRate: Number(beatmapdata.aimRate).toFixed(3),
 								MapLink: maplink,
 								osudirect: maplink_direct
 							}
@@ -285,24 +286,23 @@ var hps = {
 							if (config.ForceCreateDB == 1){
 								if ( objmap.BeatmapID>0 && objmap.BeatmapSetID>0 && objmap.BeatmapDuration>0){
 									
-										rowsfordb.push(
-											[objmap.BeatmapSetID,
-									    	objmap.BeatmapID,
-									    	objmap.BeatmapMapper,
-									    	objmap.BeatmapArtist,
-									    	objmap.BeatmapTitle,
-									    	objmap.BeatmapDiff,
-									    	objmap.MapPath,
-									    	objmap.BeatmapDuration,
-									    	objmap.HitObjects,
-									    	objmap.HitsPerMinute,
-									    	objmap.HitsRate,
-									    	objmap.AimRate,
-									    	objmap.MapLink,
-									    	objmap.osudirect]
-									    )
-									
-									
+									rowsfordb.push(
+										[objmap.BeatmapSetID,
+								    	objmap.BeatmapID,
+								    	objmap.BeatmapMapper,
+								    	objmap.BeatmapArtist,
+								    	objmap.BeatmapTitle,
+								    	objmap.BeatmapDiff,
+								    	objmap.MapPath,
+								    	objmap.BeatmapDuration,
+								    	objmap.HitObjects,
+								    	objmap.HitsPerMinute,
+								    	objmap.HitsRate,
+								    	objmap.AimRate,
+								    	objmap.MapLink,
+								    	objmap.osudirect]
+								    )
+
 								}
 							}
 
@@ -350,6 +350,8 @@ var hps = {
 				let res = pointsLength(hitobject_cors.x,hitobject_cors.y, avgOffset.jumpprevious.x, avgOffset.jumpprevious.y)
 				if (!isNaN(res)){
 					avgOffset.jumplength = avgOffset.jumplength + res
+					//log(res)
+					//log(avgOffset.jumplength)
 				}
 			}
 			avgOffset.jumpprevious = hitobject_cors
@@ -362,14 +364,13 @@ var hps = {
 			if (avgOffset.previous != -1) {
 				let hitobjects_range = hitobject_offset - avgOffset.previous
 				if (hitobjects_range>1000){
-					hitobjects_range = avgOffset.current
+					hitobjects_range = avgOffset.avgOffset
 				}
-				avgOffset.current = (avgOffset.current + hitobjects_range) / 2
+				avgOffset.avgOffset = (avgOffset.avgOffset + hitobjects_range) / 2
 			} else {
 				avgOffset.first = hitobject_offset
 			}
 			avgOffset.previous = hitobject_offset
-
 		}
 
 		return avgOffset
@@ -436,7 +437,6 @@ var hps = {
 
 main = async function(){
 
-	
 	await hps.ScaningSongs()
 	
 	await hps.GetBeatmap()
