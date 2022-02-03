@@ -25,7 +25,7 @@ module.exports = {
 	//'BeatmapTitle LIKE "%Wings (Nu%" or BeatmapTitle LIKE "%wizard\'s tower%" or BeatmapTitle LIKE "%louder than steel%"',
 
 	//number show objects
-	limit: 200,
+	limit: 20,
 
 	order: 'AimRate ASC',
 }
