@@ -98,7 +98,7 @@ body{
 	margin: auto;
 	width: max-content;
 }
-.beatmap_duration,.beatmap_hitobjects,.beatmap_hpm,.beatmap_hitsrate,.beatmap_aimrate,.osudirect{
+.beatmap_duration,.beatmap_moddate,.beatmap_hitobjects,.beatmap_hpm,.beatmap_hitsrate,.beatmap_aimrate,.osudirect{
 	display: inline-block;
 	padding:  0px 10px 0px;
 	color: #FFF;

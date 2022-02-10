@@ -1,5 +1,5 @@
-
 const log = console.log.bind(console)
+
 const fs = require('fs')
 const path = require('path')
 
@@ -59,7 +59,8 @@ class ExplorerOsuHPS extends ExplorerOsu {
 			{header: 'HitsRate', key: 'HitsRate'},
 			{header: 'AimRate', key: 'AimRate'},
 			//{header:'osu!direct',key:'osudirect'}
-			{header:'MapLink',key:'MapLink'}
+			{header:'MapLink',key:'MapLink'},
+			{header:'ModDate',key:'ModDate'}
 		]
 		this.worksheet.columns.forEach(column => {
 			column.width = column.header.length < 12 ? 12 : column.header.length
@@ -133,7 +134,8 @@ class ExplorerOsuHPS extends ExplorerOsu {
 					'"HitsRate"	NUMERIC,'+
 					'"AimRate" NUMERIC,'+
 					'"MapLink"	TEXT,'+
-					'"osudirect"	TEXT)')
+					'"osudirect"	TEXT,'+
+					'"ModDate" INTEGER)')
 			q.run()
 			
 		}
@@ -159,22 +161,35 @@ class ExplorerOsuHPS extends ExplorerOsu {
 	}
 
 	StartCheckingSubSongs(){
-		progress.print()
+		if (config.printingProgress){
+			progress.print()
+		}
     }
+
+	createdDate (file) {  
+		const {mtimeMs}  = fs.statSync(file)
+		return new Date(mtimeMs).getFullYear()
+	}
 
     checkFileSubSongs(){
 		if (path.extname(this.checkingfile) !== '.osu'){
 			return
 		}
+		
+		
 
 		let tempdata = fs.readFileSync(this.CheckFileFullPath,'utf8')
 		
 		tempdata = tempdata.toString().split("\n")
 
-		let beatmapdata = {id:"0",setid:"-2",diff:"",title:"",artist:"",mapper:"",hitsRate:0,HPM:-1,duration:0, numobjects:0,aimRate:0}
+		let beatmapdata = {id:"0",setid:"-2",diff:"",title:"",artist:"",mapper:"",hitsRate:0,HPM:-1,duration:0, numobjects:0,aimRate:0,moddate:0}
 		let NotesObj = {previous: -1, avgOffset: 1, first: 0, last: 0, jumplength: 0, jumpprevious: 0}
 
 		let HitObjectsFind = 0
+
+		if (config.MakeSongsByYearFolder){
+			beatmapdata.moddate = this.createdDate(this.CheckFileFullPath)
+		}
 
 		//scanning osu file
 		for(let i in tempdata) {
@@ -257,7 +272,8 @@ class ExplorerOsuHPS extends ExplorerOsu {
 			HitsRate: Number(beatmapdata.hitsRate).toFixed(3),
 			AimRate: Number(beatmapdata.aimRate).toFixed(3),
 			MapLink: maplink,
-			osudirect: maplink_direct
+			osudirect: maplink_direct,
+			ModDate: beatmapdata.moddate
 		}
 
 		if (config.CreateXlsx == 1){
@@ -286,7 +302,8 @@ class ExplorerOsuHPS extends ExplorerOsu {
 					objmap.HitsRate,
 					objmap.AimRate,
 					objmap.MapLink,
-					objmap.osudirect]
+					objmap.osudirect,
+					objmap.ModDate]
 				)
 
 			}
@@ -328,7 +345,7 @@ class ExplorerOsuHPS extends ExplorerOsu {
 	}
 
 	insertRows(data) {
-		let placeholders =  data.map((dataarray) => '(?,?,?,?,?,?,?,?,?,?,?,?,?,?)').join(',');
+		let placeholders =  data.map((dataarray) => '(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').join(',');
 		data = [].concat(...data)
 		let q = this.db.prepare('INSERT INTO "BeatmapsAll" VALUES '+ placeholders)
 		q.run(data)		
@@ -400,6 +417,7 @@ class ExplorerOsuHPS extends ExplorerOsu {
 			'<div class="beatmap_hitsrate" title="Hits rate">'+row.HitsRate+'</div>'+
 			'<div class="beatmap_aimrate" title="Aim rate">'+row.AimRate+'</div>'+
 			'<div class="osudirect"><a href="'+row.osudirect+'">osu!direct</a></div>'+
+			'<div class="beatmap_moddate" title="Modify Year">'+row.ModDate+'</div>'+
 			'</div></div></div>'
 	
 			fs.appendFileSync('beatmapsQueryResult.html',content)

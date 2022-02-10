@@ -4,6 +4,8 @@ module.exports = {
 
 	ForceCreateDB: 0,	//1 - scanning songs and create db
 	CreateXlsx: 0,	//1 - create xlsx excel file with all maps
+	MakeSongsByYearFolder: 1,
+	printingProgress: 0,
 
 	//mysql expretion
 	//parameters:
