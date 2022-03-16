@@ -1,11 +1,12 @@
 module.exports = {
 
-	Songspath:  'F:\\Songs',			//your songs folder with back slashes
+	Songspath:  'D:\\Songs',			//your songs folder with back slashes
 
 	ForceCreateDB: 0,	//1 - scanning songs and create db
+
 	CreateXlsx: 0,	//1 - create xlsx excel file with all maps
-	MakeSongsByYearFolder: 1,
-	printingProgress: 0,
+
+	printingProgress: 1,
 
 	//mysql expretion
 	//parameters:
@@ -21,6 +22,7 @@ module.exports = {
 		HitsPerMinute
 		HitsRate
 		AimRate
+		ModDate
 	*/
 	expr : 'BeatmapDuration>30',
 	//'1=1',

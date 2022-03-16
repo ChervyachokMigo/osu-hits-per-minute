@@ -52,37 +52,37 @@ class ExplorerOsuHPS extends ExplorerOsu {
 			{header: 'BeatmapArtist', key: 'BeatmapArtist'},
 			{header: 'BeatmapTitle', key: 'BeatmapTitle'},
 			{header: 'BeatmapDiff', key: 'BeatmapDiff'},
-			{header: 'MapPath', key: 'MapPath'},
+			//{header: 'MapPath', key: 'MapPath'},
 			{header: 'BeatmapDuration', key: 'BeatmapDuration'},
 			{header: 'HitObjects', key: 'HitObjects'},
 			{header: 'HitsPerMinute', key: 'HitsPerMinute'},
 			{header: 'HitsRate', key: 'HitsRate'},
 			{header: 'AimRate', key: 'AimRate'},
 			//{header:'osu!direct',key:'osudirect'}
-			{header:'MapLink',key:'MapLink'},
-			{header:'ModDate',key:'ModDate'}
-		]
+			{header:'ModDate',key:'ModDate'},
+			{header:'MapLink',key:'MapLink'}
+		];
 		this.worksheet.columns.forEach(column => {
-			column.width = column.header.length < 12 ? 12 : column.header.length
-		})
-		this.worksheet.getRow(1).font = {bold: true}
+			column.width = column.header.length < 13 ? 13 : column.header.length
+		});
+		this.worksheet.getRow(1).font = {bold: true};
 
-		const figureColumnsNumbers = [1, 2, 7]
+		const figureColumnsNumbers = [1, 2, 8, 12];
 		figureColumnsNumbers.forEach((i) => {
 			this.worksheet.getColumn(i).numFmt = '0'
 			this.worksheet.getColumn(i).alignment = {horizontal: 'right'}
 		})
 
-		const figureColumnsFloat = [8]
+		const figureColumnsFloat = [7, 9, 10, 11];
 		figureColumnsFloat.forEach((i) => {
 			this.worksheet.getColumn(i).numFmt = '0.000000'
 			this.worksheet.getColumn(i).alignment = {horizontal: 'right'}
 		})
 
-		const figureColumnsLink = [12]
+		const figureColumnsLink = [13];
 		figureColumnsLink.forEach((i) => {
 			this.worksheet.getColumn(i).font = linkStyle;
-		})
+		});
 		this.worksheet.getCell('L1').font = {color: {argb: "00000000"},bold: true};
 
 	}
@@ -123,19 +123,19 @@ class ExplorerOsuHPS extends ExplorerOsu {
 			let q = this.db.prepare('CREATE TABLE "BeatmapsAll" ('+
 					'"BeatmapSetID"	INTEGER,'+
 					'"BeatmapID" INTEGER,'+
-					'"BeatmapMapper"	TEXT,'+
-					'"BeatmapArtist"	TEXT,'+
+					'"BeatmapMapper" TEXT,'+
+					'"BeatmapArtist" TEXT,'+
 					'"BeatmapTitle"	TEXT,'+
-					'"BeatmapDiff"	TEXT,'+
-					'"MapPath"	INTEGER,'+
-					'"BeatmapDuration"	REAL,'+
-					'"HitObjects"	INTEGER,'+
-					'"HitsPerMinute"	NUMERIC,'+
+					'"BeatmapDiff" TEXT,'+
+					//'"MapPath" INTEGER,'+
+					'"BeatmapDuration" REAL,'+
+					'"HitObjects" INTEGER,'+
+					'"HitsPerMinute" NUMERIC,'+
 					'"HitsRate"	NUMERIC,'+
 					'"AimRate" NUMERIC,'+
-					'"MapLink"	TEXT,'+
-					'"osudirect"	TEXT,'+
-					'"ModDate" INTEGER)')
+					'"MapLink" TEXT,'+
+					'"ModDate" INTEGER,'+
+					'"osudirect" TEXT)');
 			q.run()
 			
 		}
@@ -172,12 +172,9 @@ class ExplorerOsuHPS extends ExplorerOsu {
 	}
 
     checkFileSubSongs(){
-		if (path.extname(this.checkingfile) !== '.osu'){
-			return
-		}
-		
-		
 
+		if (path.extname(this.checkingfile) !== '.osu')	return
+		
 		let tempdata = fs.readFileSync(this.CheckFileFullPath,'utf8')
 		
 		tempdata = tempdata.toString().split("\n")
@@ -187,9 +184,7 @@ class ExplorerOsuHPS extends ExplorerOsu {
 
 		let HitObjectsFind = 0
 
-		if (config.MakeSongsByYearFolder){
-			beatmapdata.moddate = this.createdDate(this.CheckFileFullPath)
-		}
+		beatmapdata.moddate = this.createdDate(this.CheckFileFullPath)
 
 		//scanning osu file
 		for(let i in tempdata) {
@@ -265,7 +260,7 @@ class ExplorerOsuHPS extends ExplorerOsu {
 			BeatmapArtist: beatmapdata.artist,
 			BeatmapTitle: beatmapdata.title,
 			BeatmapDiff: beatmapdata.diff,
-			MapPath: '',//folder+"\\"+checkingfile,
+			//MapPath: '',//folder+"\\"+checkingfile,
 			BeatmapDuration: beatmapdata.duration,
 			HitObjects: Number(beatmapdata.numobjects),
 			HitsPerMinute: beatmapdata.HPM,
@@ -280,10 +275,10 @@ class ExplorerOsuHPS extends ExplorerOsu {
 			var LastRow = this.worksheet.addRow(objmap);
 
 			if (maplink_direct === "no link"){
-				LastRow.getCell(12).font = this.WorksheetdefaultText
+				LastRow.getCell(14).font = this.WorksheetdefaultText
 			}
 			if (maplink === "no link"){
-				LastRow.getCell(12).font = this.WorksheetdefaultText
+				LastRow.getCell(14).font = this.WorksheetdefaultText
 			}
 		}
 		if (config.ForceCreateDB == 1){
@@ -295,15 +290,16 @@ class ExplorerOsuHPS extends ExplorerOsu {
 					objmap.BeatmapArtist,
 					objmap.BeatmapTitle,
 					objmap.BeatmapDiff,
-					objmap.MapPath,
+					//objmap.MapPath,
 					objmap.BeatmapDuration,
 					objmap.HitObjects,
 					objmap.HitsPerMinute,
 					objmap.HitsRate,
 					objmap.AimRate,
 					objmap.MapLink,
-					objmap.osudirect,
-					objmap.ModDate]
+					objmap.ModDate,
+					objmap.osudirect
+					]
 				)
 
 			}
@@ -345,7 +341,7 @@ class ExplorerOsuHPS extends ExplorerOsu {
 	}
 
 	insertRows(data) {
-		let placeholders =  data.map((dataarray) => '(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').join(',');
+		let placeholders =  data.map((dataarray) => '(?,?,?,?,?,?,?,?,?,?,?,?,?,?)').join(',');
 		data = [].concat(...data)
 		let q = this.db.prepare('INSERT INTO "BeatmapsAll" VALUES '+ placeholders)
 		q.run(data)		
@@ -381,7 +377,7 @@ class ExplorerOsuHPS extends ExplorerOsu {
 		let footer =  '</body></html>'
 		this.db = new sqlite3('BeatmapsHPM.db')
 
-		fs.writeFileSync('beatmapsQueryResult.html', header)//clear
+		fs.writeFileSync('beatmapsQueryResult.html', header)
 
 		let exprHtml = '<div style="display: flex;color:#fff;">'+config.expr+' LIMIT '+config.limit+' ORDER BY '+config.order+'</div>'
 
@@ -416,9 +412,9 @@ class ExplorerOsuHPS extends ExplorerOsu {
 			'<div class="beatmap_hpm" title="Hits per minute">'+row.HitsPerMinute.toFixed(0)+'</div>'+
 			'<div class="beatmap_hitsrate" title="Hits rate">'+row.HitsRate+'</div>'+
 			'<div class="beatmap_aimrate" title="Aim rate">'+row.AimRate+'</div>'+
-			'<div class="osudirect"><a href="'+row.osudirect+'">osu!direct</a></div>'+
 			'<div class="beatmap_moddate" title="Modify Year">'+row.ModDate+'</div>'+
-			'</div></div></div>'
+			'<div class="osudirect"><a href="'+row.osudirect+'">osu!direct</a></div>'+
+			'</div></div></div>';
 	
 			fs.appendFileSync('beatmapsQueryResult.html',content)
 			num++
@@ -459,6 +455,6 @@ const existsFile = (file) => {
 }
 
 
-var explorer = new ExplorerOsuHPS("C:\\osu","F:\\Songs")
+var explorer = new ExplorerOsuHPS("C:\\osu",config.Songspath)
 explorer.Explore()
 explorer.GetBeatmaps()

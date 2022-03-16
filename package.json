@@ -1,0 +1,29 @@
+{
+  "name": "osu-hits-per-minute-main",
+  "version": "1.0.0",
+  "description": "",
+  "main": "hps.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ChervyachokMigo/osu-hits-per-minute.git"
+  },
+  "keywords": [
+    "osu",
+    "hps"
+  ],
+  "author": "sadgod",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ChervyachokMigo/osu-hits-per-minute/issues"
+  },
+  "homepage": "https://github.com/ChervyachokMigo/osu-hits-per-minute#readme",
+  "dependencies": {
+    "better-sqlite3": "^7.5.0",
+    "exceljs": "^4.3.0",
+    "fs": "^0.0.1-security",
+    "path": "^0.12.7"
+  }
+}

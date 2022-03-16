@@ -12,6 +12,7 @@ module.exports =  class ExplorerOsu {
     currentFolderNum
     checkingSubSongsPath
     checkingfile
+    CurrentCheckingDir
 
     canDoMainLoop = true
 
@@ -40,11 +41,9 @@ module.exports =  class ExplorerOsu {
 		   	let checkingDir = fs.lstatSync(this.checkingSubSongsPath)
             if (checkingDir.isDirectory()){                
 
-                let CurrentCheckingDir = fs.readdirSync(this.checkingSubSongsPath, function(err, result) {
-                    if(err) console.log('error', err);
-                  })
+                this.CurrentCheckingDir = fs.readdirSync(this.checkingSubSongsPath)
 
-                for (this.checkingfile of CurrentCheckingDir){
+                for (this.checkingfile of this.CurrentCheckingDir){
 
                     this.CheckFileFullPath = this.checkingSubSongsPath+"\\"+this.checkingfile;
                     if (this.debug) console.log("Start Cheching File in Sub Folder..")

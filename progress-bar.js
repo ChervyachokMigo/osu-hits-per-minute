@@ -5,6 +5,7 @@ module.exports = {
 	progressbar: '', 
 	progressbar_empty: '',
 	tasks: [],
+	RefreshRate: 1,
 
 	setDefault: function (itemsLength,tasks){
 		this.progressbar = ""
@@ -15,8 +16,7 @@ module.exports = {
 	},
 
 	PrintProcents: function (procent){
-
-		if ((procent*10 % 100) < 1){
+		if (procent*10 % 100 < 1){
 			this.progressbar_empty = this.progressbar_empty.substring(0, this.progressbar_empty.length - 1);
 			this.progressbar = this.progressbar + "█"
 		}
@@ -27,16 +27,17 @@ module.exports = {
 	},
 
 	print: function(){
-		if (this.itemCurrent % (this.itemsLength/1000) < 1 ){
+		var items100 = this.itemsLength/(100*this.RefreshRate)
+		if (this.itemCurrent % items100 < 1 ){
 			process.stdout.write('\033c');
-			let itemsProcent = Math.trunc(this.itemCurrent / this.itemsLength * 1000) / 10
+			let itemsProcent = Math.trunc(this.itemCurrent / items100) / this.RefreshRate
 			log ("[Tasks]")
 			for (let task of this.tasks){
 				log (task)
 			}
 			log ("")
 			log ("Processing...")
-			this.PrintProcents(itemsProcent)
+			module.exports.PrintProcents(itemsProcent)
 		}
 		this.itemCurrent++
 	}
