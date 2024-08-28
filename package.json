@@ -21,9 +21,7 @@
   },
   "homepage": "https://github.com/ChervyachokMigo/osu-hits-per-minute#readme",
   "dependencies": {
-    "better-sqlite3": "^7.5.0",
-    "exceljs": "^4.3.0",
-    "fs": "^0.0.1-security",
-    "path": "^0.12.7"
+    "better-sqlite3": "^11.2.1",
+    "exceljs": "^4.3.0"
   }
 }

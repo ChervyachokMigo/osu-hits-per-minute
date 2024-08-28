@@ -1,0 +1,6 @@
+{
+	"search.exclude": {
+		"**/BeatmapDB.xlsx": true,
+		"**/BeatmapsHPM.db": true
+	}
+}
